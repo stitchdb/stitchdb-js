@@ -73,7 +73,7 @@ export default class GoTrueAdminApi {
    * ```ts
    * import { createClient } from 'stitchdb-js'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-secret-key')
+   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-service-role-key')
    * const { data, error } = await stitchdb.auth.admin.listUsers()
    * ```
    *
@@ -262,7 +262,7 @@ export default class GoTrueAdminApi {
    *
    * @remarks
    * - The following types can be passed into `generateLink()`: `signup`, `magiclink`, `invite`, `recovery`, `email_change_current`, `email_change_new`, `phone_change`.
-   * - `generateLink()` only generates the email link for `email_change_email` if the **Secure email change** is enabled in your project's [email auth provider settings](/dashboard/project/_/auth/providers).
+   * - `generateLink()` only generates the email link for `email_change_email` if the **Secure email change** is enabled in your project's [email auth provider settings](https://stitchdb.com/dashboard).
    * - `generateLink()` handles the creation of the user for `signup`, `invite` and `magiclink`.
    *
    * @example Generate a signup link
@@ -406,7 +406,7 @@ export default class GoTrueAdminApi {
    *
    * @remarks
    * - To confirm the user's email address or phone number, set `email_confirm` or `phone_confirm` to true. Both arguments default to false.
-   * - `createUser()` will not send a confirmation email to the user. You can use [`inviteUserByEmail()`](/docs/reference/javascript/auth-admin-inviteuserbyemail) if you want to send them an email invite instead.
+   * - `createUser()` will not send a confirmation email to the user. You can use [`inviteUserByEmail()`](https://stitchdb.com/docs/auth/manage-users) if you want to send them an email invite instead.
    * - If you are sure that the created user's email or phone number is legitimate and verified, you can set the `email_confirm` or `phone_confirm` param to `true`.
    *
    * @example With custom user metadata
@@ -1205,7 +1205,7 @@ export default class GoTrueAdminApi {
   /**
    * Lists all passkeys for a user.
    *
-   * This function should only be called on a server. Never expose your secret key in the browser.
+   * This function should only be called on a server. Never expose your service_role key in the browser.
    */
   private async _adminListPasskeys(
     params: AuthPasskeyAdminListParams
@@ -1230,7 +1230,7 @@ export default class GoTrueAdminApi {
   /**
    * Deletes a user's passkey.
    *
-   * This function should only be called on a server. Never expose your secret key in the browser.
+   * This function should only be called on a server. Never expose your service_role key in the browser.
    */
   private async _adminDeletePasskey(
     params: AuthPasskeyAdminDeleteParams

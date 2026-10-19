@@ -209,7 +209,7 @@ export default class StorageFileApi extends BaseApiClient<StorageError> {
    * - RLS policy permissions required:
    *   - `buckets` table permissions: none
    *   - `objects` table permissions: only `insert` when you are uploading new files and `select`, `insert` and `update` when you are upserting files
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    * - For React Native, using either `Blob`, `File` or `FormData` does not work as intended. Upload file using `ArrayBuffer` from base64 file data instead, see example below.
    */
   async upload(
@@ -265,7 +265,7 @@ export default class StorageFileApi extends BaseApiClient<StorageError> {
    * - RLS policy permissions required:
    *   - `buckets` table permissions: none
    *   - `objects` table permissions: none
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    */
   async uploadToSignedUrl(
     path: string,
@@ -365,7 +365,7 @@ export default class StorageFileApi extends BaseApiClient<StorageError> {
    * - RLS policy permissions required:
    *   - `buckets` table permissions: none
    *   - `objects` table permissions: `insert`
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    */
   async createSignedUploadUrl(
     path: string,
@@ -460,7 +460,7 @@ export default class StorageFileApi extends BaseApiClient<StorageError> {
    *   - `buckets` table permissions: none
    *   - `objects` table permissions: `update` and `select`
    * - `update()` always replaces the file at the given path regardless of the `upsert` option.
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    * - For React Native, using either `Blob`, `File` or `FormData` does not work as intended. Update file using `ArrayBuffer` from base64 file data instead, see example below.
    */
   async update(
@@ -523,7 +523,7 @@ export default class StorageFileApi extends BaseApiClient<StorageError> {
    * - RLS policy permissions required:
    *   - `buckets` table permissions: none
    *   - `objects` table permissions: `update` and `select`
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    */
   async move(
     fromPath: string,
@@ -602,7 +602,7 @@ export default class StorageFileApi extends BaseApiClient<StorageError> {
    * - RLS policy permissions required:
    *   - `buckets` table permissions: none
    *   - `objects` table permissions: `insert` and `select`
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    */
   async copy(
     fromPath: string,
@@ -647,7 +647,7 @@ export default class StorageFileApi extends BaseApiClient<StorageError> {
    * @param path The file path, including the current file name. For example `folder/image.png`.
    * @param expiresIn The number of seconds until the signed URL expires. For example, `60` for a URL which is valid for one minute.
    * @param options.download triggers the file as a download if set to true. Set this parameter as the name of the file if you want to trigger the download with a different filename.
-   * @param options.transform Transform the asset before serving it to the client.
+   * @param options.transform Image transformation options. **Not available on StitchDB yet:** transformed URLs return an error.
    * @param options.cacheNonce Append a cache nonce parameter to the URL to invalidate the cache.
    * @param options.versionId Create a signed URL for a specific object version rather than the current one.
    * @returns Promise with response containing signed URL or error
@@ -697,7 +697,7 @@ export default class StorageFileApi extends BaseApiClient<StorageError> {
    * - RLS policy permissions required:
    *   - `buckets` table permissions: none
    *   - `objects` table permissions: `select`
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    */
   async createSignedUrl(
     path: string,
@@ -797,7 +797,7 @@ export default class StorageFileApi extends BaseApiClient<StorageError> {
    * - RLS policy permissions required:
    *   - `buckets` table permissions: none
    *   - `objects` table permissions: `select`
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    */
   async createSignedUrls(
     paths: string[],
@@ -851,7 +851,7 @@ export default class StorageFileApi extends BaseApiClient<StorageError> {
    * @category Storage
    * @subcategory File Buckets
    * @param path The full path and file name of the file to be downloaded. For example `folder/image.png`.
-   * @param options Optional settings: `transform` to transform the asset before serving it to the client, `cacheNonce` to append a cache nonce parameter to the URL to invalidate the cache, and `versionId` to download a specific object version.
+   * @param options Optional settings: `transform` (image transformations, **not available on StitchDB yet**), `cacheNonce` to append a cache nonce parameter to the URL to invalidate the cache, and `versionId` to download a specific object version.
    * @param parameters Additional fetch parameters like signal for cancellation. Supports standard fetch options including cache control.
    * @returns BlobDownloadBuilder instance for downloading the file
    *
@@ -908,7 +908,7 @@ export default class StorageFileApi extends BaseApiClient<StorageError> {
    * - RLS policy permissions required:
    *   - `buckets` table permissions: none
    *   - `objects` table permissions: `select`
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    */
   download<
     Options extends { transform?: TransformOptions; cacheNonce?: string; versionId?: string },
@@ -1059,7 +1059,7 @@ export default class StorageFileApi extends BaseApiClient<StorageError> {
    * @subcategory File Buckets
    * @param path The path and name of the file to generate the public URL for. For example `folder/image.png`.
    * @param options.download Triggers the file as a download if set to true. Set this parameter as the name of the file if you want to trigger the download with a different filename.
-   * @param options.transform Transform the asset before serving it to the client.
+   * @param options.transform Image transformation options. **Not available on StitchDB yet:** transformed URLs return an error.
    * @param options.cacheNonce Append a cache nonce parameter to the URL to invalidate the cache.
    * @param options.versionId Return the URL for a specific object version rather than the current one.
    * @returns Object with public URL
@@ -1105,11 +1105,11 @@ export default class StorageFileApi extends BaseApiClient<StorageError> {
    * ```
    *
    * @remarks
-   * - The bucket needs to be set to public, either via [updateBucket()](/docs/reference/javascript/storage-updatebucket) or by going to Storage on [stitchdb.com/dashboard](https://stitchdb.com/docs), clicking the overflow menu on a bucket and choosing "Make public"
+   * - The bucket needs to be set to public, either via [updateBucket()](https://stitchdb.com/docs/storage/buckets) or by going to Storage on [stitchdb.com/dashboard](https://stitchdb.com/docs), clicking the overflow menu on a bucket and choosing "Make public"
    * - RLS policy permissions required:
    *   - `buckets` table permissions: none
    *   - `objects` table permissions: none
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    */
   getPublicUrl(
     path: string,
@@ -1185,7 +1185,7 @@ export default class StorageFileApi extends BaseApiClient<StorageError> {
    * - RLS policy permissions required:
    *   - `buckets` table permissions: none
    *   - `objects` table permissions: `delete` and `select`
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    */
   async remove(paths: DeleteObjectEntry[]): Promise<
     | {
@@ -1217,9 +1217,8 @@ export default class StorageFileApi extends BaseApiClient<StorageError> {
    * `service_role` JWT — calls made with the anon key or a user JWT will be
    * rejected by the server.
    *
-   * **Hosted CDN feature.** On self-hosted StitchDB, the Storage service must
-   * have `CDN_PURGE_ENDPOINT_URL` configured and the `purgeCache` tenant
-   * feature enabled, otherwise the server returns an error.
+   * **Not available on StitchDB:** StitchDB storage has no CDN cache to purge, so
+   * the server returns an error for this call.
    *
    * Operates on a single object path. There is no wildcard or recursion: pass
    * the exact path of the object you want invalidated.
@@ -1423,7 +1422,7 @@ export default class StorageFileApi extends BaseApiClient<StorageError> {
    * - RLS policy permissions required:
    *   - `buckets` table permissions: none
    *   - `objects` table permissions: `select`
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    */
   async list(
     path?: string,

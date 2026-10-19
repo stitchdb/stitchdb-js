@@ -41,7 +41,7 @@ export type {
  * ```ts
  * import { createClient } from 'stitchdb-js'
  *
- * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-publishable-key')
+ * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key')
  * const { data, error } = await stitchdb.from('profiles').select('*')
  * ```
  */
@@ -67,41 +67,5 @@ export const createClient = <
     stitchUrl,
     stitchKey,
     options
-  )
-}
-
-// Check for Node.js <= 20 deprecation
-function shouldShowDeprecationWarning(): boolean {
-  // Skip in browser and Deno environments
-  if (typeof window !== 'undefined' || (globalThis as any)['Deno'] !== undefined) {
-    return false
-  }
-
-  // Skip if process is not available (e.g., Edge Runtime)
-  // Use dynamic property access to avoid Next.js Edge Runtime static analysis warnings
-  const _process = (globalThis as any)['process']
-  if (!_process) {
-    return false
-  }
-
-  const processVersion = _process['version']
-  if (processVersion === undefined || processVersion === null) {
-    return false
-  }
-
-  const versionMatch = processVersion.match(/^v(\d+)\./)
-  if (!versionMatch) {
-    return false
-  }
-
-  const majorVersion = parseInt(versionMatch[1], 10)
-  return majorVersion <= 20
-}
-
-if (shouldShowDeprecationWarning()) {
-  console.warn(
-    `⚠️  Node.js 20 and below are deprecated and will no longer be supported in future versions of stitchdb-js. ` +
-      `Please upgrade to Node.js 22 or later. ` +
-      `For more information, visit: https://github.com/orgs/stitchdb/discussions/45715`
   )
 }

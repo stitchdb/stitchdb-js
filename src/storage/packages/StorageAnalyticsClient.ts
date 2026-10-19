@@ -24,7 +24,7 @@ export default class StorageAnalyticsClient extends BaseApiClient<StorageError> 
    *
    * Creates a new StorageAnalyticsClient instance
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Analytics Buckets
@@ -36,7 +36,7 @@ export default class StorageAnalyticsClient extends BaseApiClient<StorageError> 
    * ```typescript
    * import { createClient } from 'stitchdb-js'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-publishable-key')
+   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key')
    * const { data, error } = await stitchdb.storage.analytics.listBuckets()
    * ```
    *
@@ -59,7 +59,7 @@ export default class StorageAnalyticsClient extends BaseApiClient<StorageError> 
    * Creates a new analytics bucket using Iceberg tables
    * Analytics buckets are optimized for analytical queries and data processing
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Analytics Buckets
@@ -113,7 +113,7 @@ export default class StorageAnalyticsClient extends BaseApiClient<StorageError> 
    * Retrieves the details of all Analytics Storage buckets within an existing project
    * Only returns buckets of type 'ANALYTICS'
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Analytics Buckets
@@ -197,7 +197,7 @@ export default class StorageAnalyticsClient extends BaseApiClient<StorageError> 
    * A bucket can't be deleted with existing objects inside it
    * You must first empty the bucket before deletion
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Analytics Buckets
@@ -253,7 +253,7 @@ export default class StorageAnalyticsClient extends BaseApiClient<StorageError> 
    * The returned client provides full access to the Apache Iceberg REST Catalog API
    * with the StitchDB `{ data, error }` pattern for consistent error handling on all operations.
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Analytics Buckets

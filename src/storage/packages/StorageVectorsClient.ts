@@ -21,7 +21,7 @@ import {
  *
  * Configuration options for the Storage Vectors client
  *
- * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+ * **Not available on StitchDB:** these buckets are not offered; calls return an error.
  */
 export interface StorageVectorsClientOptions {
   /**
@@ -42,7 +42,7 @@ export interface StorageVectorsClientOptions {
  * Main client for interacting with S3 Vectors API
  * Provides access to bucket, index, and vector data operations
  *
- * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+ * **Not available on StitchDB:** these buckets are not offered; calls return an error.
  *
  * **Usage Patterns:**
  *
@@ -83,7 +83,7 @@ export class StorageVectorsClient extends VectorBucketApi {
    *
    * Creates a StorageVectorsClient that can manage buckets, indexes, and vectors.
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Vector Buckets
@@ -95,7 +95,7 @@ export class StorageVectorsClient extends VectorBucketApi {
    * ```typescript
    * import { createClient } from 'stitchdb-js'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-publishable-key')
+   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key')
    * const bucket = stitchdb.storage.vectors.from('embeddings-prod')
    * ```
    *
@@ -117,7 +117,7 @@ export class StorageVectorsClient extends VectorBucketApi {
    * Access operations for a specific vector bucket
    * Returns a scoped client for index and vector operations within the bucket
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Vector Buckets
@@ -140,7 +140,7 @@ export class StorageVectorsClient extends VectorBucketApi {
    * Creates a new vector bucket
    * Vector buckets are containers for vector indexes and their data
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Vector Buckets
@@ -165,7 +165,7 @@ export class StorageVectorsClient extends VectorBucketApi {
    *
    * Retrieves metadata for a specific vector bucket
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Vector Buckets
@@ -192,7 +192,7 @@ export class StorageVectorsClient extends VectorBucketApi {
    *
    * Lists all vector buckets with optional filtering and pagination
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Vector Buckets
@@ -224,7 +224,7 @@ export class StorageVectorsClient extends VectorBucketApi {
    * Deletes a vector bucket (bucket must be empty)
    * All indexes must be deleted before deleting the bucket
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Vector Buckets
@@ -251,7 +251,7 @@ export class StorageVectorsClient extends VectorBucketApi {
  * Scoped client for operations within a specific vector bucket
  * Provides index management and access to vector operations
  *
- * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+ * **Not available on StitchDB:** these buckets are not offered; calls return an error.
  */
 export class VectorBucketScope extends VectorIndexApi {
   private vectorBucketName: string
@@ -261,7 +261,7 @@ export class VectorBucketScope extends VectorIndexApi {
    *
    * Creates a helper that automatically scopes all index operations to the provided bucket.
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Vector Buckets
@@ -287,7 +287,7 @@ export class VectorBucketScope extends VectorIndexApi {
    * Creates a new vector index in this bucket
    * Convenience method that automatically includes the bucket name
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Vector Buckets
@@ -322,7 +322,7 @@ export class VectorBucketScope extends VectorIndexApi {
    * Lists indexes in this bucket
    * Convenience method that automatically includes the bucket name
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Vector Buckets
@@ -349,7 +349,7 @@ export class VectorBucketScope extends VectorIndexApi {
    * Retrieves metadata for a specific index in this bucket
    * Convenience method that automatically includes the bucket name
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Vector Buckets
@@ -374,7 +374,7 @@ export class VectorBucketScope extends VectorIndexApi {
    * Deletes an index from this bucket
    * Convenience method that automatically includes the bucket name
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Vector Buckets
@@ -398,7 +398,7 @@ export class VectorBucketScope extends VectorIndexApi {
    * Access operations for a specific index within this bucket
    * Returns a scoped client for vector data operations
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Vector Buckets
@@ -441,7 +441,7 @@ export class VectorBucketScope extends VectorIndexApi {
  * Scoped client for operations within a specific vector index
  * Provides vector data operations (put, get, list, query, delete)
  *
- * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+ * **Not available on StitchDB:** these buckets are not offered; calls return an error.
  */
 export class VectorIndexScope extends VectorDataApi {
   private vectorBucketName: string
@@ -453,7 +453,7 @@ export class VectorIndexScope extends VectorDataApi {
    *
    * Creates a helper that automatically scopes all vector operations to the provided bucket/index names.
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Vector Buckets
@@ -481,7 +481,7 @@ export class VectorIndexScope extends VectorDataApi {
    * Inserts or updates vectors in this index
    * Convenience method that automatically includes bucket and index names
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Vector Buckets
@@ -517,7 +517,7 @@ export class VectorIndexScope extends VectorDataApi {
    * Retrieves vectors by keys from this index
    * Convenience method that automatically includes bucket and index names
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Vector Buckets
@@ -548,7 +548,7 @@ export class VectorIndexScope extends VectorDataApi {
    * Lists vectors in this index with pagination
    * Convenience method that automatically includes bucket and index names
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Vector Buckets
@@ -581,7 +581,7 @@ export class VectorIndexScope extends VectorDataApi {
    * Queries for similar vectors in this index
    * Convenience method that automatically includes bucket and index names
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Vector Buckets
@@ -617,7 +617,7 @@ export class VectorIndexScope extends VectorDataApi {
    * Deletes vectors by keys from this index
    * Convenience method that automatically includes bucket and index names
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** these buckets are not offered; calls return an error.
    *
    * @category Storage
    * @subcategory Vector Buckets

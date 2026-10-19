@@ -1677,9 +1677,9 @@ export interface GoTrueMFAApi {
    *
    * @remarks
    * - Use `totp` or `phone` as the `factorType` and use the returned `id` to create a challenge.
-   * - To create a challenge, see [`mfa.challenge()`](/docs/reference/javascript/auth-mfa-challenge).
-   * - To verify a challenge, see [`mfa.verify()`](/docs/reference/javascript/auth-mfa-verify).
-   * - To create and verify a TOTP challenge in a single step, see [`mfa.challengeAndVerify()`](/docs/reference/javascript/auth-mfa-challengeandverify).
+   * - To create a challenge, see [`mfa.challenge()`](https://stitchdb.com/docs/auth/mfa).
+   * - To verify a challenge, see [`mfa.verify()`](https://stitchdb.com/docs/auth/mfa).
+   * - To create and verify a TOTP challenge in a single step, see [`mfa.challengeAndVerify()`](https://stitchdb.com/docs/auth/mfa).
    * - To generate a QR code for the `totp` secret in Next.js, you can do the following:
    * ```html
    * <Image src={data.totp.qr_code} alt={data.totp.uri} layout="fill"></Image>
@@ -1757,8 +1757,8 @@ export interface GoTrueMFAApi {
    * @subcategory Auth MFA
    *
    * @remarks
-   * - An [enrolled factor](/docs/reference/javascript/auth-mfa-enroll) is required before creating a challenge.
-   * - To verify a challenge, see [`mfa.verify()`](/docs/reference/javascript/auth-mfa-verify).
+   * - An [enrolled factor](https://stitchdb.com/docs/auth/mfa) is required before creating a challenge.
+   * - To verify a challenge, see [`mfa.verify()`](https://stitchdb.com/docs/auth/mfa).
    * - A phone factor sends a code to the user upon challenge. The channel defaults to `sms` unless otherwise specified.
    *
    * @example Create a challenge for a factor
@@ -1831,7 +1831,7 @@ export interface GoTrueMFAApi {
    * @subcategory Auth MFA
    *
    * @remarks
-   * - To verify a challenge, please [create a challenge](/docs/reference/javascript/auth-mfa-challenge) first.
+   * - To verify a challenge, please [create a challenge](https://stitchdb.com/docs/auth/mfa) first.
    *
    * @example Verify a challenge for a factor
    * ```js
@@ -1942,8 +1942,8 @@ export interface GoTrueMFAApi {
    *
    * @remarks
    * - Intended for use with only TOTP factors.
-   * - An [enrolled factor](/docs/reference/javascript/auth-mfa-enroll) is required before invoking `challengeAndVerify()`.
-   * - Executes [`mfa.challenge()`](/docs/reference/javascript/auth-mfa-challenge) and [`mfa.verify()`](/docs/reference/javascript/auth-mfa-verify) in a single step.
+   * - An [enrolled factor](https://stitchdb.com/docs/auth/mfa) is required before invoking `challengeAndVerify()`.
+   * - Executes [`mfa.challenge()`](https://stitchdb.com/docs/auth/mfa) and [`mfa.verify()`](https://stitchdb.com/docs/auth/mfa) in a single step.
    *
    * @example Create and verify a challenge for a factor
    * ```js

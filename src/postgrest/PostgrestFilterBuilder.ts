@@ -1611,7 +1611,7 @@ export default class PostgrestFilterBuilder<
    * @subcategory Using filters
    *
    * @remarks
-   * - For more information, see [Postgres full text search](/docs/guides/database/full-text-search).
+   * - For more information, see [Postgres full text search](https://stitchdb.com/docs/api/filtering).
    *
    * @example Text search
    * ```ts

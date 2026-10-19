@@ -10,7 +10,7 @@ export interface StorageClientOptions {
 
 export class StorageClient extends StorageBucketApi {
   /**
-   * Creates a client for Storage buckets, files, analytics, and vectors.
+   * Creates a client for Storage buckets and files.
    *
    * @category Storage
    * @subcategory File Buckets
@@ -19,7 +19,7 @@ export class StorageClient extends StorageBucketApi {
    * ```ts
    * import { createClient } from 'stitchdb-js'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-publishable-key')
+   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key')
    * const avatars = stitchdb.storage.from('avatars')
    * ```
    *
@@ -28,7 +28,7 @@ export class StorageClient extends StorageBucketApi {
    * import { StorageClient } from 'stitchdb-js'
    *
    * const storage = new StorageClient('https://xyzcompany.stitchdb.com/storage/v1', {
-   *   apikey: 'your-publishable-key',
+   *   apikey: 'your-anon-key',
    * })
    * const avatars = storage.from('avatars')
    * ```
@@ -65,7 +65,7 @@ export class StorageClient extends StorageBucketApi {
    *
    * Access vector storage operations.
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** analytics (Iceberg) buckets are not offered; these calls return an error.
    *
    * @category Storage
    * @subcategory Vector Buckets
@@ -85,7 +85,7 @@ export class StorageClient extends StorageBucketApi {
    *
    * Access analytics storage operations using Iceberg tables.
    *
-   * **Public alpha:** This API is part of a public alpha release and may not be available to your account type.
+   * **Not available on StitchDB:** analytics (Iceberg) buckets are not offered; these calls return an error.
    *
    * @category Storage
    * @subcategory Analytics Buckets

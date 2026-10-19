@@ -1,7 +1,5 @@
 /**
- * Avoid modifying this file. It's part of
- * https://github.com/stitchdb-community/base64url-js.  Submit all fixes on
- * that repo!
+ * Base64-URL helpers adapted from an MIT-licensed implementation (see THIRD_PARTY_NOTICES).
  */
 
 import { Uint8Array_ } from './webauthn.dom'

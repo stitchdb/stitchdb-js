@@ -48,7 +48,7 @@ export default class PostgrestQueryBuilder<
    * ```ts
    * import { createClient } from 'stitchdb-js'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-publishable-key')
+   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key')
    * const { data, error } = await stitchdb.from('users').select('*')
    * ```
    *
@@ -58,7 +58,7 @@ export default class PostgrestQueryBuilder<
    *
    * const query = new PostgrestQueryBuilder(
    *   new URL('https://xyzcompany.stitchdb.com/rest/v1/users'),
-   *   { headers: { apikey: 'your-publishable-key' }, retry: true }
+   *   { headers: { apikey: 'your-anon-key' }, retry: true }
    * )
    * ```
    */
@@ -121,10 +121,10 @@ export default class PostgrestQueryBuilder<
        * When using `count` with `.range()` or `.limit()`, the returned `count` is the total number of rows
        * that match your filters, not the number of rows in the current page. Use this to build pagination UI.
        
-     * - By default, StitchDB projects return a maximum of 1,000 rows. This setting can be changed in your project's [API settings](/dashboard/project/_/settings/api). It's recommended that you keep it low to limit the payload size of accidental or malicious requests. You can use `range()` queries to paginate through your data.
-     * - `select()` can be combined with [Filters](/docs/reference/javascript/using-filters)
-     * - `select()` can be combined with [Modifiers](/docs/reference/javascript/using-modifiers)
-     * - `apikey` is a reserved keyword if you're using the [StitchDB Platform](/docs/guides/platform) and [should be avoided as a column name](https://github.com/stitchdb/stitchdb-js). *
+     * - By default, StitchDB projects return a maximum of 1,000 rows. This setting can be changed in your project's [API settings](https://stitchdb.com/dashboard). It's recommended that you keep it low to limit the payload size of accidental or malicious requests. You can use `range()` queries to paginate through your data.
+     * - `select()` can be combined with [Filters](https://stitchdb.com/docs/api/filtering)
+     * - `select()` can be combined with [Modifiers](https://stitchdb.com/docs/api/querying)
+     * - `apikey` is a reserved keyword if you're using the [StitchDB Platform](https://stitchdb.com/docs/platform) and [should be avoided as a column name](https://github.com/stitchdb/stitchdb-js). *
      * @category Database
      *
      * @example Getting your data
@@ -736,7 +736,7 @@ export default class PostgrestQueryBuilder<
      *
      * @exampleDescription Querying with count option
      * You can get the number of rows by using the
-     * [count](/docs/reference/javascript/select#parameters) option.
+     * [count](https://stitchdb.com/docs/api/querying) option.
      *
      * @example Querying with count option
      * ```ts
@@ -769,8 +769,8 @@ export default class PostgrestQueryBuilder<
      *
      * @exampleDescription Querying JSON data
      * You can select and filter data inside of
-     * [JSON](/docs/guides/database/json) columns. Postgres offers some
-     * [operators](/docs/guides/database/json#query-the-jsonb-data) for
+     * [JSON](https://stitchdb.com/docs/api/querying) columns. Postgres offers some
+     * [operators](https://stitchdb.com/docs/api/querying) for
      * querying JSON data.
      *
      * @example Querying JSON data
@@ -866,7 +866,7 @@ export default class PostgrestQueryBuilder<
      *
      * @exampleDescription Switching schemas per query
      * In addition to setting the schema during initialization, you can also switch schemas on a per-query basis.
-     * Make sure you've set up your [database privileges and API settings](/docs/guides/api/using-custom-schemas).
+     * Make sure you've set up your [database privileges and API settings](https://stitchdb.com/docs/api).
      *
      * @example Switching schemas per query
      * ```ts
@@ -1444,7 +1444,7 @@ export default class PostgrestQueryBuilder<
    * @category Database
    *
    * @remarks
-   * - `update()` should always be combined with [Filters](/docs/reference/javascript/using-filters) to target the item(s) you wish to update.
+   * - `update()` should always be combined with [Filters](https://stitchdb.com/docs/api/filtering) to target the item(s) you wish to update.
    *
    * @example Updating your data
    * ```ts
@@ -1518,7 +1518,7 @@ export default class PostgrestQueryBuilder<
    *
    * @exampleDescription Updating JSON data
    * Postgres offers some
-   * [operators](/docs/guides/database/json#query-the-jsonb-data) for
+   * [operators](https://stitchdb.com/docs/api/querying) for
    * working with JSON data. Currently, it is only possible to update the entire JSON document.
    *
    * @example Updating JSON data
@@ -1628,9 +1628,9 @@ export default class PostgrestQueryBuilder<
    * @category Database
    *
    * @remarks
-   * - `delete()` should always be combined with [filters](/docs/reference/javascript/using-filters) to target the item(s) you wish to delete.
+   * - `delete()` should always be combined with [filters](https://stitchdb.com/docs/api/filtering) to target the item(s) you wish to delete.
    * - If you use `delete()` with filters and you have
-   *   [RLS](/docs/learn/auth-deep-dive/auth-row-level-security) enabled, only
+   *   [RLS](https://stitchdb.com/docs/database/row-level-security) enabled, only
    *   rows visible through `SELECT` policies are deleted. Note that by default
    *   no rows are visible, so you need at least one `SELECT`/`ALL` policy that
    *   makes the rows visible.

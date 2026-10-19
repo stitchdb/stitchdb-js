@@ -25,7 +25,7 @@ export class FunctionsClient {
    * ```ts
    * import { createClient } from 'stitchdb-js'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-publishable-key')
+   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key')
    * const { data, error } = await stitchdb.functions.invoke('hello-world')
    * ```
    *
@@ -36,7 +36,7 @@ export class FunctionsClient {
    * import { FunctionsClient, FunctionRegion } from 'stitchdb-js'
    *
    * const functions = new FunctionsClient('https://xyzcompany.stitchdb.com/functions/v1', {
-   *   headers: { apikey: 'your-publishable-key' },
+   *   headers: { apikey: 'your-anon-key' },
    *   region: FunctionRegion.UsEast1,
    * })
    * ```

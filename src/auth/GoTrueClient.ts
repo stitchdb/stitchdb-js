@@ -399,7 +399,7 @@ export default class GoTrueClient {
    * ```ts
    * import { createClient } from 'stitchdb-js'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-publishable-key')
+   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key')
    * const { data, error } = await stitchdb.auth.getUser()
    * ```
    *
@@ -409,7 +409,7 @@ export default class GoTrueClient {
    *
    * const auth = new GoTrueClient({
    *   url: 'https://xyzcompany.stitchdb.com/auth/v1',
-   *   headers: { apikey: 'your-publishable-key' },
+   *   headers: { apikey: 'your-anon-key' },
    *   storageKey: 'stitchdb-auth',
    * })
    * ```
@@ -868,15 +868,15 @@ export default class GoTrueClient {
    * @category Auth
    *
    * @remarks
-   * - By default, the user needs to verify their email address before logging in. To turn this off, disable **Confirm email** in [your project](/dashboard/project/_/auth/providers).
+   * - By default, the user needs to verify their email address before logging in. To turn this off, disable **Confirm email** in [your project](https://stitchdb.com/dashboard).
    * - **Confirm email** determines if users need to confirm their email address after signing up.
    *   - If **Confirm email** is enabled, a `user` is returned but `session` is null.
    *   - If **Confirm email** is disabled, both a `user` and a `session` are returned.
-   * - When the user confirms their email address, they are redirected to the [`SITE_URL`](/docs/guides/auth/redirect-urls#use-wildcards-in-redirect-urls) by default. You can modify your `SITE_URL` or add additional redirect URLs in [your project](/dashboard/project/_/auth/url-configuration).
+   * - When the user confirms their email address, they are redirected to the [`SITE_URL`](https://stitchdb.com/docs/auth/redirect-urls) by default. You can modify your `SITE_URL` or add additional redirect URLs in [your project](https://stitchdb.com/dashboard).
    * - If signUp() is called for an existing confirmed user:
-   *   - When both **Confirm email** and **Confirm phone** (even when phone provider is disabled) are enabled in [your project](/dashboard/project/_/auth/providers), an obfuscated/fake user object is returned.
+   *   - When both **Confirm email** and **Confirm phone** (even when phone provider is disabled) are enabled in [your project](https://stitchdb.com/dashboard), an obfuscated/fake user object is returned.
    *   - When either **Confirm email** or **Confirm phone** (even when phone provider is disabled) is disabled, the error message, `User already registered` is returned.
-   * - To fetch the currently logged-in user, refer to [`getUser()`](/docs/reference/javascript/auth-getuser).
+   * - To fetch the currently logged-in user, refer to [`getUser()`](https://stitchdb.com/docs/sdk/auth).
    *
    * @example Sign up with an email and password
    * ```js
@@ -1017,7 +1017,7 @@ export default class GoTrueClient {
    * ```
    *
    * @exampleDescription Sign up with a redirect URL
-   * - See [redirect URLs and wildcards](/docs/guides/auth/redirect-urls#use-wildcards-in-redirect-urls) to add additional redirect URLs to your project.
+   * - See [redirect URLs and wildcards](https://stitchdb.com/docs/auth/redirect-urls) to add additional redirect URLs to your project.
    *
    * @example Sign up with a redirect URL
    * ```js
@@ -1300,7 +1300,7 @@ export default class GoTrueClient {
    * @category Auth
    *
    * @remarks
-   * - This method is used for signing in using [Social Login (OAuth) providers](/docs/guides/auth#configure-third-party-providers).
+   * - This method is used for signing in using [Social Login (OAuth) providers](https://stitchdb.com/docs/auth).
    * - It works by redirecting your application to the provider's authorization screen, before bringing back the user to your app.
    *
    * @example Sign in using a third-party provider
@@ -1323,8 +1323,8 @@ export default class GoTrueClient {
    * ```
    *
    * @exampleDescription Sign in using a third-party provider with redirect
-   * - When the OAuth provider successfully authenticates the user, they are redirected to the URL specified in the `redirectTo` parameter. This parameter defaults to the [`SITE_URL`](/docs/guides/auth/redirect-urls#use-wildcards-in-redirect-urls). It does not redirect the user immediately after invoking this method.
-   * - See [redirect URLs and wildcards](/docs/guides/auth/redirect-urls#use-wildcards-in-redirect-urls) to add additional redirect URLs to your project.
+   * - When the OAuth provider successfully authenticates the user, they are redirected to the URL specified in the `redirectTo` parameter. This parameter defaults to the [`SITE_URL`](https://stitchdb.com/docs/auth/redirect-urls). It does not redirect the user immediately after invoking this method.
+   * - See [redirect URLs and wildcards](https://stitchdb.com/docs/auth/redirect-urls) to add additional redirect URLs to your project.
    *
    * @example Sign in using a third-party provider with redirect
    * ```js
@@ -1596,7 +1596,7 @@ export default class GoTrueClient {
    *
    * @remarks
    * - Uses a Web3 (Ethereum, Solana) wallet to sign a user in.
-   * - Read up on the [potential for abuse](/docs/guides/auth/auth-web3#potential-for-abuse) before using it.
+   * - Read up on the [potential for abuse](https://stitchdb.com/docs/auth/web3) before using it.
    *
    * @example Sign in with Solana or Ethereum (Window API)
    * ```js
@@ -2235,10 +2235,10 @@ export default class GoTrueClient {
    * - If the user doesn't exist, `signInWithOtp()` will signup the user instead. To restrict this behavior, you can set `shouldCreateUser` in `SignInWithPasswordlessCredentials.options` to `false`.
    * - If you're using an email, you can configure whether you want the user to receive a magiclink or a OTP.
    * - If you're using phone, you can configure whether you want the user to receive a OTP.
-   * - The magic link's destination URL is determined by the [`SITE_URL`](/docs/guides/auth/redirect-urls#use-wildcards-in-redirect-urls).
-   * - See [redirect URLs and wildcards](/docs/guides/auth/redirect-urls#use-wildcards-in-redirect-urls) to add additional redirect URLs to your project.
-   * - Magic links and OTPs share the same implementation. To send users a one-time code instead of a magic link, [modify the magic link email template](/dashboard/project/_/auth/templates) to include `{{ .Token }}` instead of `{{ .ConfirmationURL }}`.
-   * - See our [Twilio Phone Auth Guide](/docs/guides/auth/phone-login?showSMSProvider=Twilio) for details about configuring WhatsApp sign in.
+   * - The magic link's destination URL is determined by the [`SITE_URL`](https://stitchdb.com/docs/auth/redirect-urls).
+   * - See [redirect URLs and wildcards](https://stitchdb.com/docs/auth/redirect-urls) to add additional redirect URLs to your project.
+   * - Magic links and OTPs share the same implementation. To send users a one-time code instead of a magic link, [modify the magic link email template](https://stitchdb.com/dashboard) to include `{{ .Token }}` instead of `{{ .ConfirmationURL }}`.
+   * - See our [Twilio Phone Auth Guide](https://stitchdb.com/docs/auth/phone) for details about configuring WhatsApp sign in.
    *
    * @exampleDescription Sign in with email
    * The user will be sent an email which contains either a magiclink or a OTP or both. By default, a given user can only request a OTP once every 60 seconds.
@@ -2355,7 +2355,7 @@ export default class GoTrueClient {
    *   3. `invite` – Used when verifying an OTP sent as part of an invitation to join a project or organization.
    *   4. `email_change` – Used when verifying an OTP sent to a new email address during an email update process.
    * - The verification type used should be determined based on the corresponding auth method called before `verifyOtp` to sign up / sign-in a user.
-   * - The `TokenHash` is contained in the [email templates](/docs/guides/auth/auth-email-templates) and can be used to sign in.  You may wish to use the hash for the PKCE flow for Server Side Auth. Read [the Password-based Auth guide](/docs/guides/auth/passwords) for more details.
+   * - The `TokenHash` is contained in the [email templates](https://stitchdb.com/docs/auth/emails) and can be used to sign in.  You may wish to use the hash for the PKCE flow for Server Side Auth. Read [the Password-based Auth guide](https://stitchdb.com/docs/auth/passwords) for more details.
    *
    * @example Verify Signup One-Time Password (OTP)
    * ```js
@@ -2540,7 +2540,7 @@ export default class GoTrueClient {
    * @category Auth
    *
    * @remarks
-   * - Before you can call this method you need to [establish a connection](/docs/guides/auth/sso/auth-sso-saml#managing-saml-20-connections) to an identity provider. Use the [CLI commands](/docs/reference/cli/stitchdb-sso) to do this.
+   * - Before you can call this method you need to [establish a connection](https://stitchdb.com/docs/auth/sso) to an identity provider. Use the [CLI commands](https://stitchdb.com/docs/auth/sso) to do this.
    * - If you've associated an email domain to the identity provider, you can use the `domain` property to start a sign-in flow.
    * - In case you need to use a different way to start the authentication flow with an identity provider, you can use the `providerId` property. For example:
    *     - Mapping specific user email addresses with an identity provider.
@@ -2624,7 +2624,7 @@ export default class GoTrueClient {
    *
    * @remarks
    * - This method is used together with `updateUser()` when a user's password needs to be updated.
-   * - If you require your user to reauthenticate before updating their password, you need to enable the **Secure password change** option in your [project's email provider settings](/dashboard/project/_/auth/providers).
+   * - If you require your user to reauthenticate before updating their password, you need to enable the **Secure password change** option in your [project's email provider settings](https://stitchdb.com/dashboard).
    * - A user is only require to reauthenticate before updating their password if **Secure password change** is enabled and the user **hasn't recently signed in**. A user is deemed recently signed in if the session was created in the last 24 hours.
    * - This method will send a nonce to the user's email. If the user doesn't have a confirmed email address, the method will send the nonce to the user's confirmed phone number instead.
    * - After receiving the OTP, include it as the `nonce` in your `updateUser()` call to finalize the password change.
@@ -2800,8 +2800,8 @@ export default class GoTrueClient {
    * @category Auth
    *
    * @remarks
-   * - Since the introduction of [asymmetric JWT signing keys](/docs/guides/auth/signing-keys), this method is considered low-level and we encourage you to use `getClaims()` or `getUser()` instead.
-   * - Retrieves the current [user session](/docs/guides/auth/sessions) from the storage medium (local storage, cookies).
+   * - Since the introduction of [asymmetric JWT signing keys](https://stitchdb.com/docs/auth/roles-and-jwt), this method is considered low-level and we encourage you to use `getClaims()` or `getUser()` instead.
+   * - Retrieves the current [user session](https://stitchdb.com/docs/auth/sessions) from the storage medium (local storage, cookies).
    * - The session contains an access token (signed JWT), a refresh token and the user object.
    * - If the session's access token is expired or is about to expire, this method will use the refresh token to refresh the session.
    * - When using in a browser, or you've called `startAutoRefresh()` in your environment (React Native, etc.) this function always returns a valid access token without refreshing the session itself, as this is done in the background. This function returns very fast.
@@ -3295,10 +3295,10 @@ export default class GoTrueClient {
    * @remarks
    * - In order to use the `updateUser()` method, the user needs to be signed in first.
    * - By default, email updates sends a confirmation link to both the user's current and new email.
-   * To only send a confirmation link to the user's new email, disable **Secure email change** in your project's [email auth provider settings](/dashboard/project/_/auth/providers).
+   * To only send a confirmation link to the user's new email, disable **Secure email change** in your project's [email auth provider settings](https://stitchdb.com/dashboard).
    *
    * @exampleDescription Update the email for an authenticated user
-   * Sends a "Confirm Email Change" email to the new address. If **Secure Email Change** is enabled (default), confirmation is also required from the **old email** before the change is applied. To skip dual confirmation and apply the change after only the new email is verified, disable **Secure Email Change** in the [Email Auth Provider settings](/dashboard/project/_/auth/providers?provider=Email).
+   * Sends a "Confirm Email Change" email to the new address. If **Secure Email Change** is enabled (default), confirmation is also required from the **old email** before the change is applied. To skip dual confirmation and apply the change after only the new email is verified, disable **Secure Email Change** in the [Email Auth Provider settings](https://stitchdb.com/dashboard).
    *
    * @example Update the email for an authenticated user
    * ```js
@@ -3391,7 +3391,7 @@ export default class GoTrueClient {
    * ```
    *
    * @exampleDescription Update the user's password with a nonce
-   * If **Secure password change** is enabled in your [project's email provider settings](/dashboard/project/_/auth/providers), updating the user's password would require a nonce if the user **hasn't recently signed in**. The nonce is sent to the user's email or phone number. A user is deemed recently signed in if the session was created in the last 24 hours.
+   * If **Secure password change** is enabled in your [project's email provider settings](https://stitchdb.com/dashboard), updating the user's password would require a nonce if the user **hasn't recently signed in**. The nonce is sent to the user's email or phone number. A user is deemed recently signed in if the session was created in the last 24 hours.
    *
    * @example Update the user's password with a nonce
    * ```js
@@ -4169,7 +4169,7 @@ export default class GoTrueClient {
    *         - User has signed out on another device.
    *         - The session has reached its timebox limit or inactivity timeout.
    *         - User has signed in on another device with single session per user enabled.
-   *         - Check the [User Sessions](/docs/guides/auth/sessions) docs for more information.
+   *         - Check the [User Sessions](https://stitchdb.com/docs/auth/sessions) docs for more information.
    *     - Use this to clean up any local storage your application has associated with the user.
    *   - `TOKEN_REFRESHED`
    *     - Emitted each time a new access and refresh token are fetched for the signed in user.
@@ -4181,7 +4181,7 @@ export default class GoTrueClient {
    *     - Emitted each time the `stitchdb.auth.updateUser()` method finishes successfully. Listen to it to update your application's UI based on new profile information.
    *   - `PASSWORD_RECOVERY`
    *     - Emitted instead of the `SIGNED_IN` event when the user lands on a page that includes a password recovery link in the URL.
-   *     - Use it to show a UI to the user where they can [reset their password](/docs/guides/auth/passwords#resetting-a-users-password-forgot-password).
+   *     - Use it to show a UI to the user where they can [reset their password](https://stitchdb.com/docs/auth/passwords).
    *
    * @example Listen to auth changes
    * ```js
@@ -4231,9 +4231,9 @@ export default class GoTrueClient {
    * ```
    *
    * @exampleDescription Store OAuth provider tokens on sign in
-   * When using [OAuth (Social Login)](/docs/guides/auth/social-login) you sometimes wish to get access to the provider's access token and refresh token, in order to call provider APIs in the name of the user.
+   * When using [OAuth (Social Login)](https://stitchdb.com/docs/auth/oauth) you sometimes wish to get access to the provider's access token and refresh token, in order to call provider APIs in the name of the user.
    *
-   * For example, if you are using [Sign in with Google](/docs/guides/auth/social-login/auth-google) you may want to use the provider token to call Google APIs on behalf of the user. StitchDB Auth does not keep track of the provider access and refresh token, but does return them for you once, immediately after sign in. You can use the `onAuthStateChange` method to listen for the presence of the provider tokens and store them in local storage. You can further send them to your server's APIs for use on the backend.
+   * For example, if you are using [Sign in with Google](https://stitchdb.com/docs/auth/oauth) you may want to use the provider token to call Google APIs on behalf of the user. StitchDB Auth does not keep track of the provider access and refresh token, but does return them for you once, immediately after sign in. You can use the `onAuthStateChange` method to listen for the presence of the provider tokens and store them in local storage. You can further send them to your server's APIs for use on the backend.
    *
    * Finally, make sure you remove them from local storage on the `SIGNED_OUT` event. If the OAuth provider supports token revocation, make sure you call those APIs either from the frontend or schedule them to be called on the backend.
    *
@@ -4410,12 +4410,12 @@ export default class GoTrueClient {
    * @remarks
    * - The password reset flow consist of 2 broad steps: (i) Allow the user to login via the password reset link; (ii) Update the user's password.
    * - The `resetPasswordForEmail()` only sends a password reset link to the user's email.
-   * To update the user's password, see [`updateUser()`](/docs/reference/javascript/auth-updateuser).
+   * To update the user's password, see [`updateUser()`](https://stitchdb.com/docs/sdk/auth).
    * - A `PASSWORD_RECOVERY` event will be emitted when the password recovery link is clicked.
-   * You can use [`onAuthStateChange()`](/docs/reference/javascript/auth-onauthstatechange) to listen and invoke a callback function on these events.
+   * You can use [`onAuthStateChange()`](https://stitchdb.com/docs/sdk/auth) to listen and invoke a callback function on these events.
    * - When the user clicks the reset link in the email they are redirected back to your application.
    * You can configure the URL that the user is redirected to with the `redirectTo` parameter.
-   * See [redirect URLs and wildcards](/docs/guides/auth/redirect-urls#use-wildcards-in-redirect-urls) to add additional redirect URLs to your project.
+   * See [redirect URLs and wildcards](https://stitchdb.com/docs/auth/redirect-urls) to add additional redirect URLs to your project.
    * - After the user has been redirected successfully, prompt them for a new password and call `updateUser()`:
    * ```js
    * const { data, error } = await stitchdb.auth.updateUser({
@@ -4584,7 +4584,7 @@ export default class GoTrueClient {
    * @category Auth
    *
    * @remarks
-   * - The **Enable Manual Linking** option must be enabled from your [project's authentication settings](/dashboard/project/_/auth/providers).
+   * - The **Enable Manual Linking** option must be enabled from your [project's authentication settings](https://stitchdb.com/dashboard).
    * - The user needs to be signed in to call `linkIdentity()`.
    * - If the candidate identity is already linked to the existing user or another user, `linkIdentity()` will fail.
    * - If `linkIdentity` is run in the browser, the user is automatically redirected to the returned URL. On the server, you should handle the redirect.
@@ -4714,7 +4714,7 @@ export default class GoTrueClient {
    * @category Auth
    *
    * @remarks
-   * - The **Enable Manual Linking** option must be enabled from your [project's authentication settings](/dashboard/project/_/auth/providers).
+   * - The **Enable Manual Linking** option must be enabled from your [project's authentication settings](https://stitchdb.com/dashboard).
    * - The user needs to be signed in to call `unlinkIdentity()`.
    * - The user must have at least 2 identities in order to unlink an identity.
    * - The identity to be unlinked must belong to the user.
@@ -6641,12 +6641,12 @@ export default class GoTrueClient {
    * @category Auth
    *
    * @remarks
-   * - Parses the user's [access token](/docs/guides/auth/sessions#access-token-jwt-claims) as a [JSON Web Token (JWT)](/docs/guides/auth/jwts) and returns its components if valid and not expired.
+   * - Parses the user's [access token](https://stitchdb.com/docs/auth/sessions) as a [JSON Web Token (JWT)](https://stitchdb.com/docs/auth/roles-and-jwt) and returns its components if valid and not expired.
    * - If your project is using asymmetric JWT signing keys, then the verification is done locally usually without a network request using the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API).
    * - A network request is sent to your project's JWT signing key discovery endpoint `https://project-id.stitchdb.com/auth/v1/.well-known/jwks.json`, which is cached locally. If your environment is ephemeral, such as a Lambda function that is destroyed after every request, a network request will be sent for each new invocation. StitchDB provides a network-edge cache providing fast responses for these situations.
    * - If the user's access token is about to expire when calling this function, the user's session will first be refreshed before validating the JWT.
    * - If your project is using a symmetric secret to sign the JWT, it always sends a request similar to `getUser()` to validate the JWT at the server before returning the decoded token. This is also used if the WebCrypto API is not available in the environment. Make sure you polyfill it in such situations.
-   * - The returned claims can be customized per project using the [Custom Access Token Hook](/docs/guides/auth/auth-hooks/custom-access-token-hook).
+   * - The returned claims can be customized per project using the [Custom Access Token Hook](https://stitchdb.com/docs/auth/hooks).
    *
    * @example Get JWT claims, header and signature
    * ```js

@@ -115,7 +115,7 @@ export default class PostgrestClient<
    * ```ts
    * import { createClient } from 'stitchdb-js'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-publishable-key')
+   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key')
    * const { data, error } = await stitchdb.from('profiles').select('*')
    * ```
    *
@@ -130,7 +130,7 @@ export default class PostgrestClient<
    * import { PostgrestClient } from 'stitchdb-js'
    *
    * const postgrest = new PostgrestClient('https://xyzcompany.stitchdb.com/rest/v1', {
-   *   headers: { apikey: 'your-publishable-key' },
+   *   headers: { apikey: 'your-anon-key' },
    *   schema: 'public',
    *   timeout: 30000, // 30 second timeout
    * })
@@ -446,7 +446,7 @@ export default class PostgrestClient<
    * ```
    *
    * @exampleDescription Call a Postgres function with filters
-   * Postgres functions that return tables can also be combined with [Filters](/docs/reference/javascript/using-filters) and [Modifiers](/docs/reference/javascript/using-modifiers).
+   * Postgres functions that return tables can also be combined with [Filters](https://stitchdb.com/docs/api/filtering) and [Modifiers](https://stitchdb.com/docs/api/querying).
    *
    * @example Call a Postgres function with filters
    * ```ts

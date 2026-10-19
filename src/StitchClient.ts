@@ -122,7 +122,7 @@ export default class StitchClient<
    * import { createClient } from 'stitchdb-js'
    *
    * // Create a single stitchdb client for interacting with your database
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-publishable-key')
+   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key')
    * ```
    *
    * @example With a custom domain
@@ -130,7 +130,7 @@ export default class StitchClient<
    * import { createClient } from 'stitchdb-js'
    *
    * // Use a custom domain as the stitchdb URL
-   * const stitchdb = createClient('https://my-custom-domain.com', 'your-publishable-key')
+   * const stitchdb = createClient('https://my-custom-domain.com', 'your-anon-key')
    * ```
    *
    * @example With additional parameters
@@ -150,20 +150,19 @@ export default class StitchClient<
    *     headers: { 'x-my-custom-header': 'my-app-name' },
    *   },
    * }
-   * const stitchdb = createClient("https://xyzcompany.stitchdb.com", "your-publishable-key", options)
+   * const stitchdb = createClient("https://xyzcompany.stitchdb.com", "your-anon-key", options)
    * ```
    *
    * @exampleDescription With custom schemas
-   * By default the API server points to the `public` schema. You can enable other database schemas within the Dashboard.
-   * Go to [Settings > API > Exposed schemas](/dashboard/project/_/settings/api) and add the schema which you want to expose to the API.
-   *
-   * Note: each client connection can only access a single schema, so the code above can access the `other_schema` schema but cannot access the `public` schema.
+   * The StitchDB REST API serves the `public` schema. Keep tables you want to reach through the API in `public`
+   * (other schemas are only reachable over a direct Postgres connection). The `db.schema` option exists for API
+   * servers that expose more schemas.
    *
    * @example With custom schemas
    * ```js
    * import { createClient } from 'stitchdb-js'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-publishable-key', {
+   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key', {
    *   // Provide a custom schema. Defaults to "public".
    *   db: { schema: 'other_schema' }
    * })
@@ -178,7 +177,7 @@ export default class StitchClient<
    * ```js
    * import { createClient } from 'stitchdb-js'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-publishable-key', {
+   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key', {
    *   global: { fetch: fetch.bind(globalThis) }
    * })
    * ```
@@ -192,7 +191,7 @@ export default class StitchClient<
    * import { createClient } from 'stitchdb-js'
    * import AsyncStorage from "@react-native-async-storage/async-storage";
    *
-   * const stitchdb = createClient("https://xyzcompany.stitchdb.com", "your-publishable-key", {
+   * const stitchdb = createClient("https://xyzcompany.stitchdb.com", "your-anon-key", {
    *   auth: {
    *     storage: AsyncStorage,
    *     autoRefreshToken: true,
@@ -269,7 +268,7 @@ export default class StitchClient<
    *   }
    * }
    *
-   * const stitchdb = createClient("https://xyzcompany.stitchdb.com", "your-publishable-key", {
+   * const stitchdb = createClient("https://xyzcompany.stitchdb.com", "your-anon-key", {
    *   auth: {
    *     storage: new LargeSecureStore(),
    *     autoRefreshToken: true,
@@ -283,7 +282,7 @@ export default class StitchClient<
    * ```ts
    * import { createClient } from 'stitchdb-js'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-publishable-key')
+   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key')
    *
    * const { data } = await stitchdb.from('profiles').select('*')
    * ```
@@ -301,7 +300,7 @@ export default class StitchClient<
    * import { createClient } from 'stitchdb-js'
    * import { trace } from '@opentelemetry/api'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-publishable-key', {
+   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key', {
    *   tracePropagation: true,
    * })
    *

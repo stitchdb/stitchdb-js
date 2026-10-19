@@ -348,7 +348,7 @@ export default class RealtimeChannel {
    * ```ts
    * import { createClient } from 'stitchdb-js'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-publishable-key')
+   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key')
    * const channel = stitchdb.channel('room1')
    * channel
    *   .on('broadcast', { event: 'cursor-pos' }, (payload) => console.log(payload))
@@ -360,7 +360,7 @@ export default class RealtimeChannel {
    * import RealtimeClient from 'stitchdb-js'
    *
    * const client = new RealtimeClient('https://xyzcompany.stitchdb.com/realtime/v1', {
-   *   params: { apikey: 'your-publishable-key' },
+   *   params: { apikey: 'your-anon-key' },
    * })
    * const channel = new RealtimeChannel('realtime:public:messages', { config: {} }, client)
    * ```
@@ -750,7 +750,7 @@ export default class RealtimeChannel {
    *
    * @remarks
    * - By default, Broadcast and Presence are enabled for all projects.
-   * - By default, listening to database changes is disabled for new projects due to database performance and security concerns. You can turn it on by managing Realtime's [replication](/docs/guides/api#realtime-api-overview).
+   * - By default, listening to database changes is disabled for new projects due to database performance and security concerns. You can turn it on by managing Realtime's [replication](https://stitchdb.com/docs/api).
    * - You can receive the "previous" data for updates and deletes by setting the table's `REPLICA IDENTITY` to `FULL` (e.g., `ALTER TABLE your_table REPLICA IDENTITY FULL;`).
    * - Row level security is not applied to delete statements. When RLS is enabled and replica identity is set to full, only the primary key is sent to clients.
    *
@@ -986,9 +986,8 @@ export default class RealtimeChannel {
     if (response.status === 404) {
       return Promise.reject(
         new Error(
-          'httpSend() requires Realtime server v2.97.0 or newer; the endpoint returned 404. ' +
-            'Update your StitchDB CLI to a recent version, or upgrade the Realtime server in your self-hosted setup. ' +
-            'See https://github.com/stitchdb/stitchdb-js'
+          'httpSend() is not supported by this Realtime server (the endpoint returned 404). ' +
+            'Use channel.send() over the websocket instead.'
         )
       )
     }

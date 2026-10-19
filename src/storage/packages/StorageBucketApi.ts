@@ -67,7 +67,7 @@ export default class StorageBucketApi extends BaseApiClient<StorageError> {
    * - RLS policy permissions required:
    *   - `buckets` table permissions: `select`
    *   - `objects` table permissions: none
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    */
   async listBuckets(options?: ListBucketOptions): Promise<
     | {
@@ -125,7 +125,7 @@ export default class StorageBucketApi extends BaseApiClient<StorageError> {
    * - RLS policy permissions required:
    *   - `buckets` table permissions: `select`
    *   - `objects` table permissions: none
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    */
   async getBucket(id: string): Promise<
     | {
@@ -186,7 +186,7 @@ export default class StorageBucketApi extends BaseApiClient<StorageError> {
    * - RLS policy permissions required:
    *   - `buckets` table permissions: `insert`
    *   - `objects` table permissions: none
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    */
   async createBucket(
     id: string,
@@ -269,7 +269,7 @@ export default class StorageBucketApi extends BaseApiClient<StorageError> {
    * - RLS policy permissions required:
    *   - `buckets` table permissions: `select` and `update`
    *   - `objects` table permissions: none
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    */
   async updateBucket(
     id: string,
@@ -335,7 +335,7 @@ export default class StorageBucketApi extends BaseApiClient<StorageError> {
    * - RLS policy permissions required:
    *   - `buckets` table permissions: `select`
    *   - `objects` table permissions: `select` and `delete`
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    */
   async emptyBucket(id: string): Promise<
     | {
@@ -382,7 +382,7 @@ export default class StorageBucketApi extends BaseApiClient<StorageError> {
    * - RLS policy permissions required:
    *   - `buckets` table permissions: `select` and `delete`
    *   - `objects` table permissions: none
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    */
   async deleteBucket(id: string): Promise<
     | {
@@ -445,7 +445,7 @@ export default class StorageBucketApi extends BaseApiClient<StorageError> {
    * - RLS policy permissions required:
    *   - `buckets` table permissions: `select`
    *   - `objects` table permissions: none
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    */
   async getBucketLifecycle(id: string): Promise<
     | {
@@ -506,7 +506,7 @@ export default class StorageBucketApi extends BaseApiClient<StorageError> {
    * - RLS policy permissions required:
    *   - `buckets` table permissions: `select` and `update`
    *   - `objects` table permissions: none
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    */
   async updateBucketLifecycle(
     id: string,
@@ -561,7 +561,7 @@ export default class StorageBucketApi extends BaseApiClient<StorageError> {
    * - RLS policy permissions required:
    *   - `buckets` table permissions: `select` and `update`
    *   - `objects` table permissions: none
-   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
+   * - Refer to the [Storage guide](https://stitchdb.com/docs/storage/policies) on how access control works
    */
   async deleteBucketLifecycle(id: string): Promise<
     | {
@@ -588,9 +588,8 @@ export default class StorageBucketApi extends BaseApiClient<StorageError> {
    * `service_role` JWT — calls made with the anon key or a user JWT will be
    * rejected by the server.
    *
-   * **Hosted CDN feature.** On self-hosted StitchDB, the Storage service must
-   * have `CDN_PURGE_ENDPOINT_URL` configured and the `purgeCache` tenant
-   * feature enabled, otherwise the server returns an error.
+   * **Not available on StitchDB:** StitchDB storage has no CDN cache to purge, so
+   * the server returns an error for this call.
    *
    * @category Storage
    * @subcategory File Buckets
