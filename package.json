@@ -1,45 +1,85 @@
 {
   "name": "stitchdb-js",
-  "version": "1.0.2",
-  "description": "Official JavaScript client for StitchDB: database, auth, storage and realtime.",
+  "version": "2.0.0",
+  "description": "Official JavaScript and TypeScript client for StitchDB: database, auth, storage, realtime and Edge Functions.",
   "license": "MIT",
-  "homepage": "https://stitchdb.com/docs",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs"
-    }
+  "homepage": "https://stitchdb.com/docs/sdk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stitchdb/stitchdb-js.git"
   },
-  "files": [
-    "dist",
-    "LICENSE",
-    "THIRD_PARTY_NOTICES",
-    "README.md"
-  ],
-  "sideEffects": false,
+  "bugs": "https://github.com/stitchdb/stitchdb-js/issues",
   "keywords": [
     "stitchdb",
     "postgres",
     "database",
     "auth",
     "realtime",
-    "storage"
+    "storage",
+    "edge-functions",
+    "postgrest"
   ],
+  "type": "commonjs",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/types/index.d.ts",
+  "unpkg": "./dist/stitchdb.js",
+  "jsdelivr": "./dist/stitchdb.js",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./cors": {
+      "types": "./dist/types/cors.d.ts",
+      "import": "./dist/cors.mjs",
+      "require": "./dist/cors.cjs"
+    },
+    "./tracing": {
+      "types": "./dist/types/tracing.d.ts",
+      "import": "./dist/tracing.mjs",
+      "require": "./dist/tracing.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/*.mjs",
+    "dist/*.cjs",
+    "dist/*.js",
+    "dist/types",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES",
+    "README.md"
+  ],
+  "sideEffects": [
+    "./dist/tracing.cjs",
+    "./dist/tracing.mjs"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "build": "sh build.sh",
-    "prepublishOnly": "sh build.sh"
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --test test/*.test.mjs",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "dependencies": {
+    "iceberg-js": "^0.8.1"
+  },
+  "peerDependencies": {
+    "@opentelemetry/api": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@opentelemetry/api": {
+      "optional": true
+    }
   },
   "devDependencies": {
-    "@supabase/supabase-js": "2.49.4",
-    "esbuild": "0.24.2"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/stitchdb/stitchdb-js.git"
-  },
-  "bugs": "https://github.com/stitchdb/stitchdb-js/issues"
+    "@opentelemetry/api": "^1.9.0",
+    "@types/node": "^20.19.9",
+    "esbuild": "^0.25.0",
+    "typescript": "~5.8.3"
+  }
 }
