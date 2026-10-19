@@ -367,7 +367,7 @@ export default class StorageAnalyticsClient extends BaseApiClient<StorageError> 
    *
    * **Library Dependency**: The returned catalog wraps `IcebergRestCatalog` from iceberg-js.
    * For complete API documentation and advanced usage, refer to the
-   * [iceberg-js documentation](https://stitchdb.github.io/iceberg-js/).
+   * [iceberg-js package](https://www.npmjs.com/package/iceberg-js).
    */
   from(bucketName: string): WrappedIcebergRestCatalog {
     // Validate bucket name using same rules as StitchDB Storage API backend
