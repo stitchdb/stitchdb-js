@@ -399,7 +399,7 @@ export default class GoTrueClient {
    * ```ts
    * import { createClient } from 'stitchdb-js'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key')
+   * const stitchdb = createClient('https://<project-ref>.p.stitchdb.com', 'your-anon-key')
    * const { data, error } = await stitchdb.auth.getUser()
    * ```
    *
@@ -408,7 +408,7 @@ export default class GoTrueClient {
    * import { GoTrueClient } from 'stitchdb-js'
    *
    * const auth = new GoTrueClient({
-   *   url: 'https://xyzcompany.stitchdb.com/auth/v1',
+   *   url: 'https://<project-ref>.p.stitchdb.com/auth/v1',
    *   headers: { apikey: 'your-anon-key' },
    *   storageKey: 'stitchdb-auth',
    * })
@@ -6643,7 +6643,7 @@ export default class GoTrueClient {
    * @remarks
    * - Parses the user's [access token](https://stitchdb.com/docs/auth/sessions) as a [JSON Web Token (JWT)](https://stitchdb.com/docs/auth/roles-and-jwt) and returns its components if valid and not expired.
    * - If your project is using asymmetric JWT signing keys, then the verification is done locally usually without a network request using the [WebCrypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API).
-   * - A network request is sent to your project's JWT signing key discovery endpoint `https://project-id.stitchdb.com/auth/v1/.well-known/jwks.json`, which is cached locally. If your environment is ephemeral, such as a Lambda function that is destroyed after every request, a network request will be sent for each new invocation. StitchDB provides a network-edge cache providing fast responses for these situations.
+   * - A network request is sent to your project's JWT signing key discovery endpoint `https://<project-ref>.p.stitchdb.com/auth/v1/.well-known/jwks.json`, which is cached locally. If your environment is ephemeral, such as a Lambda function that is destroyed after every request, a network request will be sent for each new invocation. StitchDB provides a network-edge cache providing fast responses for these situations.
    * - If the user's access token is about to expire when calling this function, the user's session will first be refreshed before validating the JWT.
    * - If your project is using a symmetric secret to sign the JWT, it always sends a request similar to `getUser()` to validate the JWT at the server before returning the decoded token. This is also used if the WebCrypto API is not available in the environment. Make sure you polyfill it in such situations.
    * - The returned claims can be customized per project using the [Custom Access Token Hook](https://stitchdb.com/docs/auth/hooks).
@@ -6669,7 +6669,7 @@ export default class GoTrueClient {
    *       "exp": 1715769600,
    *       "iat": 1715766000,
    *       "is_anonymous": false,
-   *       "iss": "https://project-id.stitchdb.com/auth/v1",
+   *       "iss": "https://<project-ref>.p.stitchdb.com/auth/v1",
    *       "phone": "+13334445555",
    *       "role": "authenticated",
    *       "session_id": "11111111-1111-1111-1111-111111111111",

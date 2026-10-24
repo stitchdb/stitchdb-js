@@ -348,7 +348,7 @@ export default class RealtimeChannel {
    * ```ts
    * import { createClient } from 'stitchdb-js'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key')
+   * const stitchdb = createClient('https://<project-ref>.p.stitchdb.com', 'your-anon-key')
    * const channel = stitchdb.channel('room1')
    * channel
    *   .on('broadcast', { event: 'cursor-pos' }, (payload) => console.log(payload))
@@ -359,7 +359,7 @@ export default class RealtimeChannel {
    * ```ts
    * import RealtimeClient from 'stitchdb-js'
    *
-   * const client = new RealtimeClient('https://xyzcompany.stitchdb.com/realtime/v1', {
+   * const client = new RealtimeClient('https://<project-ref>.p.stitchdb.com/realtime/v1', {
    *   params: { apikey: 'your-anon-key' },
    * })
    * const channel = new RealtimeChannel('realtime:public:messages', { config: {} }, client)

@@ -115,7 +115,7 @@ export default class PostgrestClient<
    * ```ts
    * import { createClient } from 'stitchdb-js'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key')
+   * const stitchdb = createClient('https://<project-ref>.p.stitchdb.com', 'your-anon-key')
    * const { data, error } = await stitchdb.from('profiles').select('*')
    * ```
    *
@@ -129,7 +129,7 @@ export default class PostgrestClient<
    * ```ts
    * import { PostgrestClient } from 'stitchdb-js'
    *
-   * const postgrest = new PostgrestClient('https://xyzcompany.stitchdb.com/rest/v1', {
+   * const postgrest = new PostgrestClient('https://<project-ref>.p.stitchdb.com/rest/v1', {
    *   headers: { apikey: 'your-anon-key' },
    *   schema: 'public',
    *   timeout: 30000, // 30 second timeout

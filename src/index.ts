@@ -41,7 +41,7 @@ export type {
  * ```ts
  * import { createClient } from 'stitchdb-js'
  *
- * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key')
+ * const stitchdb = createClient('https://<project-ref>.p.stitchdb.com', 'your-anon-key')
  * const { data, error } = await stitchdb.from('profiles').select('*')
  * ```
  */

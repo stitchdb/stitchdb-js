@@ -95,7 +95,7 @@ export class StorageVectorsClient extends VectorBucketApi {
    * ```typescript
    * import { createClient } from 'stitchdb-js'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key')
+   * const stitchdb = createClient('https://<project-ref>.p.stitchdb.com', 'your-anon-key')
    * const bucket = stitchdb.storage.vectors.from('embeddings-prod')
    * ```
    *

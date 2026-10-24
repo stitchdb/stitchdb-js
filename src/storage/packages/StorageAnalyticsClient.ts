@@ -36,7 +36,7 @@ export default class StorageAnalyticsClient extends BaseApiClient<StorageError> 
    * ```typescript
    * import { createClient } from 'stitchdb-js'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key')
+   * const stitchdb = createClient('https://<project-ref>.p.stitchdb.com', 'your-anon-key')
    * const { data, error } = await stitchdb.storage.analytics.listBuckets()
    * ```
    *

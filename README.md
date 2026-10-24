@@ -16,7 +16,7 @@ import { createClient } from 'stitchdb-js'
 const stitchdb = createClient(process.env.STITCHDB_URL, process.env.STITCHDB_ANON_KEY)
 ```
 
-Find the project URL (`https://<project-ref>.stitchdb.com`) and the anon key in the dashboard under **Settings → API keys**. The anon key is safe in browsers: Row Level Security decides what each user can read and write. Use the service_role key only on servers you control.
+Find the project URL (`https://<project-ref>.p.stitchdb.com`) and the anon key in the dashboard under **Settings → API keys**. The anon key is safe in browsers: Row Level Security decides what each user can read and write. Use the service_role key only on servers you control.
 
 ### Database
 
@@ -96,7 +96,7 @@ const { data } = await stitchdb.from('todos').select('id, task') // data: { id: 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/stitchdb-js@2/dist/stitchdb.js"></script>
 <script>
-  const client = stitchdb.createClient('https://<project-ref>.stitchdb.com', '<anon-key>')
+  const client = stitchdb.createClient('https://<project-ref>.p.stitchdb.com', '<anon-key>')
 </script>
 ```
 

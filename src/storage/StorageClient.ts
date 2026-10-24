@@ -19,7 +19,7 @@ export class StorageClient extends StorageBucketApi {
    * ```ts
    * import { createClient } from 'stitchdb-js'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key')
+   * const stitchdb = createClient('https://<project-ref>.p.stitchdb.com', 'your-anon-key')
    * const avatars = stitchdb.storage.from('avatars')
    * ```
    *
@@ -27,7 +27,7 @@ export class StorageClient extends StorageBucketApi {
    * ```ts
    * import { StorageClient } from 'stitchdb-js'
    *
-   * const storage = new StorageClient('https://xyzcompany.stitchdb.com/storage/v1', {
+   * const storage = new StorageClient('https://<project-ref>.p.stitchdb.com/storage/v1', {
    *   apikey: 'your-anon-key',
    * })
    * const avatars = storage.from('avatars')

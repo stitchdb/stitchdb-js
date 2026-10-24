@@ -73,7 +73,7 @@ export default class GoTrueAdminApi {
    * ```ts
    * import { createClient } from 'stitchdb-js'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-service-role-key')
+   * const stitchdb = createClient('https://<project-ref>.p.stitchdb.com', 'your-service-role-key')
    * const { data, error } = await stitchdb.auth.admin.listUsers()
    * ```
    *
@@ -82,7 +82,7 @@ export default class GoTrueAdminApi {
    * import { GoTrueAdminApi } from 'stitchdb-js'
    *
    * const admin = new GoTrueAdminApi({
-   *   url: 'https://xyzcompany.stitchdb.com/auth/v1',
+   *   url: 'https://<project-ref>.p.stitchdb.com/auth/v1',
    *   headers: { Authorization: `Bearer ${process.env.STITCH_SECRET_KEY}` },
    * })
    * ```

@@ -48,7 +48,7 @@ export default class PostgrestQueryBuilder<
    * ```ts
    * import { createClient } from 'stitchdb-js'
    *
-   * const stitchdb = createClient('https://xyzcompany.stitchdb.com', 'your-anon-key')
+   * const stitchdb = createClient('https://<project-ref>.p.stitchdb.com', 'your-anon-key')
    * const { data, error } = await stitchdb.from('users').select('*')
    * ```
    *
@@ -57,7 +57,7 @@ export default class PostgrestQueryBuilder<
    * import { PostgrestQueryBuilder } from 'stitchdb-js'
    *
    * const query = new PostgrestQueryBuilder(
-   *   new URL('https://xyzcompany.stitchdb.com/rest/v1/users'),
+   *   new URL('https://<project-ref>.p.stitchdb.com/rest/v1/users'),
    *   { headers: { apikey: 'your-anon-key' }, retry: true }
    * )
    * ```
