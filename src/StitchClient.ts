@@ -1,6 +1,7 @@
 import type { AuthChangeEvent } from './auth/index'
 import { FunctionsClient } from './functions/index'
 import { PushClient } from './push'
+import { search, type SearchOptions, type SearchResponse } from './search'
 import { PurchasesClient } from './purchases'
 import { OrgsClient } from './orgs'
 import { withHistory } from './realtime-history'
@@ -97,6 +98,7 @@ export default class StitchClient<
   protected pushUrl: URL
   protected purchasesUrl: URL
   protected historyUrl: URL
+  protected searchUrl: URL
   protected rest: PostgrestClient<Database, ClientOptions, SchemaName>
   protected storageKey: string
   protected fetch?: Fetch
@@ -338,6 +340,7 @@ export default class StitchClient<
     this.pushUrl = new URL('push/v1', baseUrl)
     this.purchasesUrl = new URL('purchases/v1', baseUrl)
     this.historyUrl = new URL('history/v1', baseUrl)
+    this.searchUrl = new URL('search/v1', baseUrl)
 
     // default storage key uses the project ref as a namespace
     const projectRef = baseUrl.hostname.split('.')[0]
@@ -457,6 +460,17 @@ export default class StitchClient<
       (ch) => this.removeChannel(ch as any),
       async () => (await this.auth.getSession()).data.session?.user?.id ?? null
     )
+  }
+
+  /**
+   * Search a table by words and, if its index searches by meaning, semantically (Studio › Database › Search).
+   * Rows come back best first, filtered by the table's row level security for the signed-in user.
+   *
+   * @example
+   * const { data, error } = await stitchdb.search('posts', 'running shoes', { limit: 20 })
+   */
+  search<Row = Record<string, unknown>>(table: string, q: string, options?: SearchOptions): Promise<SearchResponse<Row>> {
+    return search<Row>(this.searchUrl.href, this.fetch!, table, q, options)
   }
 
   /**

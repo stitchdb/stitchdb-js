@@ -84,6 +84,15 @@ await chat.publish('message', { text: 'hi' }) // stored, then delivered; resolve
 const { data, error } = await stitchdb.functions.invoke('hello-world', { body: { name: 'Ada' } })
 ```
 
+### Search
+
+Search a table that has a search index (Studio › Database › Search) by words and, optionally, by meaning. Your row level security policies decide which rows come back.
+
+```ts
+const { data, scores, error } = await stitchdb.search('posts', 'running shoes', { limit: 20 })
+// mode: 'hybrid' (default for semantic indexes), 'keyword' or 'semantic'; select: 'id,title'
+```
+
 ### Push notifications
 
 ```js

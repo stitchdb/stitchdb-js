@@ -152,6 +152,20 @@ test('push: devices, topics, inbox and send go to /push/v1 with the session toke
   for (const call of calls) assert.ok(call.url.startsWith('https://abcdefghijklmnop.stitchdb.com/push/v1/'), call.url)
 })
 
+test('search: POST /search/v1/<table>, errors returned not thrown', async () => {
+  const { fetch, calls } = mockFetch((c) => {
+    if (c.url.endsWith('/search/v1/posts')) return [200, { data: [{ id: 1 }], scores: [{ score: 0.03, keyword_rank: 1, semantic_rank: null }], mode: 'keyword', note: 'semantic search is not available right now' }]
+    return [404, { message: 'public.nope has no search index' }]
+  })
+  const c = createClient(URL_, KEY, { auth: { persistSession: false }, global: { fetch } })
+  const r = await c.search('posts', 'shoes', { limit: 5, mode: 'hybrid' })
+  assert.deepEqual(r.data, [{ id: 1 }]); assert.equal(r.mode, 'keyword'); assert.match(r.note, /not available/); assert.equal(r.error, null)
+  assert.deepEqual(JSON.parse(calls[0].body), { q: 'shoes', limit: 5, mode: 'hybrid' })
+  assert.equal(calls[0].headers.get('apikey'), KEY)
+  const bad = await c.search('nope', 'x')
+  assert.equal(bad.data, null); assert.equal(bad.error.name, 'SearchError'); assert.equal(bad.error.status, 404)
+})
+
 test('purchases: sync, me and entitlements go to /purchases/v1', async () => {
   const { fetch, calls } = mockFetch((c) => {
     if (c.url.endsWith('/purchases/v1/sync')) return [200, { purchase: { id: 1, status: 'active' }, entitlements: ['pro'] }]
