@@ -647,7 +647,7 @@ export default class StorageFileApi extends BaseApiClient<StorageError> {
    * @param path The file path, including the current file name. For example `folder/image.png`.
    * @param expiresIn The number of seconds until the signed URL expires. For example, `60` for a URL which is valid for one minute.
    * @param options.download triggers the file as a download if set to true. Set this parameter as the name of the file if you want to trigger the download with a different filename.
-   * @param options.transform Image transformation options. **Not available on StitchDB yet:** transformed URLs return an error.
+   * @param options.transform Image transformation options (resized on the project's server; counted against the plan's monthly image transformations).
    * @param options.cacheNonce Append a cache nonce parameter to the URL to invalidate the cache.
    * @param options.versionId Create a signed URL for a specific object version rather than the current one.
    * @returns Promise with response containing signed URL or error
@@ -851,7 +851,7 @@ export default class StorageFileApi extends BaseApiClient<StorageError> {
    * @category Storage
    * @subcategory File Buckets
    * @param path The full path and file name of the file to be downloaded. For example `folder/image.png`.
-   * @param options Optional settings: `transform` (image transformations, **not available on StitchDB yet**), `cacheNonce` to append a cache nonce parameter to the URL to invalidate the cache, and `versionId` to download a specific object version.
+   * @param options Optional settings: `transform` (image transformations: width, height, resize, quality, format), `cacheNonce` to append a cache nonce parameter to the URL to invalidate the cache, and `versionId` to download a specific object version.
    * @param parameters Additional fetch parameters like signal for cancellation. Supports standard fetch options including cache control.
    * @returns BlobDownloadBuilder instance for downloading the file
    *
@@ -1059,7 +1059,7 @@ export default class StorageFileApi extends BaseApiClient<StorageError> {
    * @subcategory File Buckets
    * @param path The path and name of the file to generate the public URL for. For example `folder/image.png`.
    * @param options.download Triggers the file as a download if set to true. Set this parameter as the name of the file if you want to trigger the download with a different filename.
-   * @param options.transform Image transformation options. **Not available on StitchDB yet:** transformed URLs return an error.
+   * @param options.transform Image transformation options (resized on the project's server; counted against the plan's monthly image transformations).
    * @param options.cacheNonce Append a cache nonce parameter to the URL to invalidate the cache.
    * @param options.versionId Return the URL for a specific object version rather than the current one.
    * @returns Object with public URL
