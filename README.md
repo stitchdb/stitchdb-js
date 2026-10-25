@@ -171,6 +171,33 @@ Deno.serve(job(async (payload, ctx) => {
 await admin.jobs.start('onboarding', { user_id }, { idempotencyKey: `onboarding:${user_id}` })
 ```
 
+## Serverless SQL (edge runtimes)
+
+`stitchdb-js/sql` sends Postgres queries over HTTPS and WebSocket, so it works in Cloudflare Workers, Vercel Edge, Deno Deploy and other runtimes that can't open TCP connections. Turn it on and create a SQL key in Studio › Database › Serverless SQL. The connection URL looks like `https://sdb_sql_...@<ref>.stitchdb.com`.
+
+```ts
+import { createSql } from 'stitchdb-js/sql'
+
+const sql = createSql(env.STITCHDB_SQL_URL)
+const todos = await sql`select * from todos where owner = ${userId} limit 20`
+
+// Several statements in one transaction, in one request:
+const [, [order]] = await sql.transaction([
+  sql`update stock set left = left - 1 where sku = ${sku}`,
+  sql`insert into orders (sku, buyer) values (${sku}, ${userId}) returning *`,
+])
+
+// Interactive transactions over a WebSocket session:
+const db = await sql.connect()
+await db.transaction(async (tx) => {
+  const [acct] = await tx`select balance from accounts where id = ${id} for update`
+  await tx`update accounts set balance = ${Number(acct.balance) - amount} where id = ${id}`
+})
+db.close()
+```
+
+Queries run as the project's owner, the same as the connection string. Keep the key on the server and never put it in a browser or an app. Values that would lose precision in JavaScript come back as strings: `int8`, `numeric`, dates and times. Without a bundler, import `https://stitchdb.com/sdk/stitchdb-sql.mjs`.
+
 ## Server middleware
 
 `stitchdb-js/middleware` builds fetch handlers (Edge Functions, Deno, Bun, Cloudflare Workers, Vercel, Node) from

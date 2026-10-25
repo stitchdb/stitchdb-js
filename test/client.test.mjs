@@ -311,3 +311,33 @@ test('jobs: job() replays saved steps, yields one new step at a time, refuses un
   assert.equal(calls[0].url, `${URL_}/jobs/v1/runs`)
   assert.deepEqual(JSON.parse(calls[0].opts.body), { job: 'onboarding', payload: { user_id: 'u' }, idempotency_key: 'k1', delay: 5 })
 })
+
+test('sql: tagged queries, fragments, identifiers, connection URL, transactions, errors', async () => {
+  const { createSql, SqlError } = await import('../dist/sql.mjs')
+  const calls = []
+  const fetch = async (url, opts) => {
+    calls.push({ url, opts, body: JSON.parse(opts.body) })
+    const b = JSON.parse(opts.body)
+    if (b.query === 'bad') return new Response(JSON.stringify({ message: 'relation "x" does not exist', code: '42P01', position: '15' }), { status: 400 })
+    if (b.transaction) return Response.json({ results: b.transaction.map((q, i) => ({ command: 'SELECT', rowCount: 1, fields: [], rows: [{ i }] })) })
+    return Response.json({ command: 'SELECT', rowCount: 1, fields: [{ name: 'n', dataTypeID: 23 }], rows: [{ n: 1 }] })
+  }
+  const sql = createSql('https://sdb_sql_abcdefghijklmnopqrstuvwxyz@abcd.stitchdb.com', { fetch })
+  const where = sql`owner = ${'ann'} and n > ${2}`
+  const rows = await sql`select * from ${sql.identifier(['public', 'my"t'])} where id = ${7} and ${where} and at < ${new Date('2026-01-01T00:00:00Z')} and big = ${5n}`
+  assert.deepEqual(rows, [{ n: 1 }])
+  assert.equal(calls[0].url, 'https://abcd.stitchdb.com/sql/v1/query')
+  assert.equal(calls[0].opts.headers.Authorization, 'Bearer sdb_sql_abcdefghijklmnopqrstuvwxyz')
+  assert.equal(calls[0].body.query, 'select * from "public"."my""t" where id = $1 and owner = $2 and n > $3 and at < $4 and big = $5')
+  assert.deepEqual(calls[0].body.params, [7, 'ann', 2, '2026-01-01T00:00:00.000Z', '5'])
+  const full = await sql.query('select $1', [1], { fullResults: true })
+  assert.equal(full.command, 'SELECT')
+  const [a, b] = await sql.transaction([sql`select 1`, sql`select 2`], { isolation: 'serializable' })
+  assert.deepEqual([a, b], [[{ i: 0 }], [{ i: 1 }]])
+  assert.equal(calls.at(-1).body.isolation, 'serializable')
+  await assert.rejects(sql.query('bad'), (e) => e instanceof SqlError && e.code === '42P01' && e.status === 400 && e.position === '15')
+  assert.throws(() => createSql('https://abcd.stitchdb.com'), /no SQL key/)
+  const s2 = createSql({ url: 'https://abcd.stitchdb.com/', key: 'sdb_sql_k' }, { fetch })
+  await s2`select 1`
+  assert.equal(calls.at(-1).url, 'https://abcd.stitchdb.com/sql/v1/query')
+})

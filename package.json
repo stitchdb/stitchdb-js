@@ -51,6 +51,11 @@
       "import": "./dist/jobs.mjs",
       "require": "./dist/jobs.cjs"
     },
+    "./sql": {
+      "types": "./dist/types/sql.d.ts",
+      "import": "./dist/sql.mjs",
+      "require": "./dist/sql.cjs"
+    },
     "./package.json": "./package.json"
   },
   "files": [
