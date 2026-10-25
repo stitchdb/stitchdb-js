@@ -29,6 +29,8 @@ export { PushClient, PushError } from './push'
 export type { PushDevice, PushMessage, InboxNotification } from './push'
 export { PurchasesClient, PurchasesError } from './purchases'
 export type { PurchaseInput, Purchase } from './purchases'
+export { OrgsClient, OrgsError } from './orgs'
+export type { Org, OrgMember, OrgInvite } from './orgs'
 export type {
   StitchClientOptions,
   TracePropagationOptions,

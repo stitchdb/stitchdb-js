@@ -102,6 +102,19 @@ await stitchdb.purchases.sync({ store: 'google', purchase_token: purchase.purcha
 if (await stitchdb.purchases.hasEntitlement('pro')) showProFeatures()
 ```
 
+### Organizations
+
+Teams and workspaces for your app's users. Turn it on in Studio → Authentication → Organizations.
+
+```js
+const org = await stitchdb.orgs.create({ name: 'Acme' })            // you become owner
+await stitchdb.orgs.invite(org.id, { email: 'bob@example.com', role: 'admin' })
+await stitchdb.orgs.acceptInvite(token)                            // on the page the invite e-mail links to
+await stitchdb.orgs.setActive(org.id)                              // JWT now carries org_id and org_role
+```
+
+In your policies: `auth.is_member(org_id)`, `auth.has_role('admin', org_id)`, `auth.org_id()`.
+
 ## Server middleware
 
 `stitchdb-js/middleware` builds fetch handlers (Edge Functions, Deno, Bun, Cloudflare Workers, Vercel, Node) from

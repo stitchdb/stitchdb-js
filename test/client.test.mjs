@@ -168,3 +168,22 @@ test('purchases: sync, me and entitlements go to /purchases/v1', async () => {
   await assert.rejects(c.purchases.refresh('u'), (e) => e.name === 'PurchasesError' && e.status === 401)
   for (const call of calls) assert.ok(call.url.startsWith('https://abcdefghijklmnop.stitchdb.com/purchases/v1/'), call.url)
 })
+
+test('orgs: calls the org_* functions over /rest/v1/rpc and maps errors', async () => {
+  const { fetch, calls } = mockFetch((c) => {
+    if (c.url.endsWith('/rest/v1/rpc/org_create')) return [200, { id: 'o1', name: 'Acme', role: 'owner', members: 1 }]
+    if (c.url.endsWith('/rest/v1/rpc/org_invite')) return [200, { id: 'i1', email: 'b@example.com', role: 'admin', token: 't' }]
+    if (c.url.endsWith('/rest/v1/rpc/org_set_role')) return [403, { code: '42501', message: 'Your role in this organization does not allow this' }]
+    if (c.url.endsWith('/rest/v1/rpc/org_list')) return [404, { code: 'PGRST202', message: 'Could not find the function public.org_list without parameters' }]
+    return [200, null]
+  })
+  const c = createClient(URL_, KEY, { auth: { persistSession: false }, global: { fetch } })
+  assert.equal((await c.orgs.create({ name: 'Acme' })).role, 'owner')
+  assert.deepEqual(JSON.parse(calls.at(-1).body), { name: 'Acme' })
+  assert.equal((await c.orgs.invite('o1', { email: 'b@example.com', role: 'admin' })).token, 't')
+  assert.deepEqual(JSON.parse(calls.at(-1).body), { org: 'o1', email: 'b@example.com', role: 'admin' })
+  await c.orgs.setActive('o1')
+  assert.ok(calls.at(-1).url.endsWith('/rest/v1/rpc/org_set_active'))
+  await assert.rejects(c.orgs.setRole('o1', 'u', 'member'), (e) => e.name === 'OrgsError' && e.status === 403 && e.code === '42501')
+  await assert.rejects(c.orgs.list(), (e) => e.name === 'OrgsError' && /not turned on/.test(e.message))
+})

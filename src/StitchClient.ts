@@ -2,6 +2,7 @@ import type { AuthChangeEvent } from './auth/index'
 import { FunctionsClient } from './functions/index'
 import { PushClient } from './push'
 import { PurchasesClient } from './purchases'
+import { OrgsClient } from './orgs'
 import {
   PostgrestClient,
   type PostgrestFilterBuilder,
@@ -461,6 +462,20 @@ export default class StitchClient<
    */
   get purchases(): PurchasesClient {
     return new PurchasesClient(this.purchasesUrl.href, this.fetch!)
+  }
+
+  /**
+   * Organizations (teams, workspaces) for your app's users: create, invite by e-mail, roles, the active
+   * organization. Turn it on in Studio → Authentication → Organizations.
+   */
+  get orgs(): OrgsClient {
+    return new OrgsClient(
+      (fn, args) => this.rpc(fn as any, args as any) as any,
+      async () => {
+        const { data } = await this.auth.getSession()
+        if (data.session) await this.auth.refreshSession()
+      }
+    )
   }
 
   // NOTE: signatures must be kept in sync with PostgrestClient.from
