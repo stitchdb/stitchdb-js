@@ -127,3 +127,27 @@ test('no third-party brand names in the published files (license notices excepte
   const bad = files.filter((f) => /supa\s*base/i.test(readFileSync(f, 'utf8')))
   assert.deepEqual(bad, [])
 })
+
+test('push: devices, topics, inbox and send go to /push/v1 with the session token', async () => {
+  const { fetch, calls } = mockFetch((c) => {
+    if (c.url.endsWith('/push/v1/inbox?unread=true&limit=5')) return [200, { notifications: [{ id: 3, title: 'Hi' }], unread: 1 }]
+    if (c.url.endsWith('/push/v1/send')) return [202, { id: 9, status: 'queued' }]
+    if (c.url.endsWith('/push/v1/config')) return [200, { vapid_public_key: 'k', ios: true, android: false, web: true }]
+    if (c.url.endsWith('/push/v1/devices') && c.method === 'POST') return [400, { message: 'platform must be ios, android or web' }]
+    return [200, { ok: true }]
+  })
+  const c = createClient(URL_, KEY, { auth: { persistSession: false }, global: { fetch } })
+  assert.equal((await c.push.config()).vapid_public_key, 'k')
+  const inbox = await c.push.inbox({ unread: true, limit: 5 })
+  assert.equal(inbox.unread, 1)
+  await c.push.markRead('all')
+  assert.deepEqual(JSON.parse(calls.at(-1).body), { all: true })
+  await c.push.subscribe('news')
+  assert.ok(calls.at(-1).url.endsWith('/push/v1/topics/news/subscribe'))
+  const when = new Date('2030-01-01T00:00:00Z')
+  assert.equal((await c.push.send({ user_id: 'u', title: 't', send_at: when })).id, 9)
+  assert.equal(JSON.parse(calls.at(-1).body).send_at, '2030-01-01T00:00:00.000Z')
+  assert.equal(calls.at(-1).headers.get('apikey'), KEY)
+  await assert.rejects(c.push.register({ platform: 'ios', token: 'x' }), (e) => e.name === 'PushError' && e.status === 400 && /platform/.test(e.message))
+  for (const call of calls) assert.ok(call.url.startsWith('https://abcdefghijklmnop.stitchdb.com/push/v1/'), call.url)
+})

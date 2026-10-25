@@ -25,6 +25,8 @@ export {
 } from './functions/index'
 export * from './realtime/index'
 export { default as StitchClient } from './StitchClient'
+export { PushClient, PushError } from './push'
+export type { PushDevice, PushMessage, InboxNotification } from './push'
 export type {
   StitchClientOptions,
   TracePropagationOptions,

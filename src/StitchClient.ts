@@ -1,5 +1,6 @@
 import type { AuthChangeEvent } from './auth/index'
 import { FunctionsClient } from './functions/index'
+import { PushClient } from './push'
 import {
   PostgrestClient,
   type PostgrestFilterBuilder,
@@ -90,6 +91,7 @@ export default class StitchClient<
   protected authUrl: URL
   protected storageUrl: URL
   protected functionsUrl: URL
+  protected pushUrl: URL
   protected rest: PostgrestClient<Database, ClientOptions, SchemaName>
   protected storageKey: string
   protected fetch?: Fetch
@@ -328,6 +330,7 @@ export default class StitchClient<
     this.authUrl = new URL('auth/v1', baseUrl)
     this.storageUrl = new URL('storage/v1', baseUrl)
     this.functionsUrl = new URL('functions/v1', baseUrl)
+    this.pushUrl = new URL('push/v1', baseUrl)
 
     // default storage key uses the project ref as a namespace
     const projectRef = baseUrl.hostname.split('.')[0]
@@ -433,6 +436,20 @@ export default class StitchClient<
       headers: this.headers,
       customFetch: this.functionsFetch,
     })
+  }
+
+  /**
+   * Push notifications and the in-app inbox: register devices, subscribe to topics, read the inbox,
+   * and (with the service role key) send.
+   */
+  get push(): PushClient {
+    return new PushClient(
+      this.pushUrl.href,
+      this.fetch!,
+      (name) => this.channel(name) as any,
+      (ch) => this.removeChannel(ch as any),
+      async () => (await this.auth.getSession()).data.session?.user?.id ?? null
+    )
   }
 
   // NOTE: signatures must be kept in sync with PostgrestClient.from

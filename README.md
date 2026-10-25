@@ -75,6 +75,23 @@ stitchdb
 const { data, error } = await stitchdb.functions.invoke('hello-world', { body: { name: 'Ada' } })
 ```
 
+### Push notifications
+
+```js
+// In the app, after sign-in: register this device (APNs token, FCM token, or a browser subscription)
+await stitchdb.push.register({ platform: 'ios', token: apnsToken })
+await stitchdb.push.registerBrowser(await navigator.serviceWorker.ready) // web
+await stitchdb.push.subscribe('news')
+
+// In-app inbox
+const { notifications, unread } = await stitchdb.push.inbox()
+await stitchdb.push.markRead('all')
+const stop = await stitchdb.push.onNotification((n) => console.log(n.title))
+
+// Server side (service role key): send
+await admin.push.send({ user_id, title: 'Order shipped', body: 'Arrives Tuesday', data: { order: 42 } })
+```
+
 ## Server middleware
 
 `stitchdb-js/middleware` builds fetch handlers (Edge Functions, Deno, Bun, Cloudflare Workers, Vercel, Node) from
