@@ -151,3 +151,20 @@ test('push: devices, topics, inbox and send go to /push/v1 with the session toke
   await assert.rejects(c.push.register({ platform: 'ios', token: 'x' }), (e) => e.name === 'PushError' && e.status === 400 && /platform/.test(e.message))
   for (const call of calls) assert.ok(call.url.startsWith('https://abcdefghijklmnop.stitchdb.com/push/v1/'), call.url)
 })
+
+test('purchases: sync, me and entitlements go to /purchases/v1', async () => {
+  const { fetch, calls } = mockFetch((c) => {
+    if (c.url.endsWith('/purchases/v1/sync')) return [200, { purchase: { id: 1, status: 'active' }, entitlements: ['pro'] }]
+    if (c.url.endsWith('/purchases/v1/me')) return [200, { purchases: [], entitlements: ['pro'] }]
+    if (c.url.endsWith('/purchases/v1/refresh')) return [401, { message: 'This needs the service_role key (server side only)' }]
+    return [200, {}]
+  })
+  const c = createClient(URL_, KEY, { auth: { persistSession: false }, global: { fetch } })
+  const r = await c.purchases.sync({ store: 'apple', signed_transaction: 'a.b.c' })
+  assert.deepEqual(r.entitlements, ['pro'])
+  assert.deepEqual(JSON.parse(calls.at(-1).body), { store: 'apple', signed_transaction: 'a.b.c' })
+  assert.equal(await c.purchases.hasEntitlement('pro'), true)
+  assert.equal(await c.purchases.hasEntitlement('team'), false)
+  await assert.rejects(c.purchases.refresh('u'), (e) => e.name === 'PurchasesError' && e.status === 401)
+  for (const call of calls) assert.ok(call.url.startsWith('https://abcdefghijklmnop.stitchdb.com/purchases/v1/'), call.url)
+})

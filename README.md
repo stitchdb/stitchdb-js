@@ -92,6 +92,16 @@ const stop = await stitchdb.push.onNotification((n) => console.log(n.title))
 await admin.push.send({ user_id, title: 'Order shipped', body: 'Arrives Tuesday', data: { order: 42 } })
 ```
 
+### In-app purchases
+
+```js
+// After a StoreKit 2 purchase (or a Google Play purchase), and on restore
+const { entitlements } = await stitchdb.purchases.sync({ store: 'apple', signed_transaction: transaction.jwsRepresentation })
+await stitchdb.purchases.sync({ store: 'google', purchase_token: purchase.purchaseToken, product_id: 'pro_monthly' })
+
+if (await stitchdb.purchases.hasEntitlement('pro')) showProFeatures()
+```
+
 ## Server middleware
 
 `stitchdb-js/middleware` builds fetch handlers (Edge Functions, Deno, Bun, Cloudflare Workers, Vercel, Node) from
