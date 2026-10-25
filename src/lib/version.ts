@@ -1,2 +1,2 @@
 // Package version, sent in the X-Client-Info header and used in error reports.
-export const version = '2.0.0'
+export const version = '2.1.0'

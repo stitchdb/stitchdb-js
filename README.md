@@ -75,6 +75,30 @@ stitchdb
 const { data, error } = await stitchdb.functions.invoke('hello-world', { body: { name: 'Ada' } })
 ```
 
+## Server middleware
+
+`stitchdb-js/middleware` builds fetch handlers (Edge Functions, Deno, Bun, Cloudflare Workers, Vercel, Node) from
+small typed steps: each one adds a key to `ctx`, can answer early, and can change the response on the way out.
+
+```ts
+import { pipeline, withClaims, withRequiredClaims, withStitchClient } from 'stitchdb-js/middleware'
+
+export default {
+  fetch: pipeline([withClaims(), withRequiredClaims(), withStitchClient()], async (req, ctx) => {
+    // ctx.claims: the signed-in user; ctx.stitch: a client acting as them (Row Level Security applies).
+    const { data, error } = await ctx.stitch.from('todos').select('*')
+    if (error) throw error
+    return Response.json({ user: ctx.claims.sub, todos: data })
+  }),
+}
+```
+
+Built-in steps: `withClaims`, `withRequiredClaims`, `withStitchClient`, `withStitchAdminClient`, `withPostgresClient`,
+`withPostgresAdminClient`, `withRateLimit`, `withRequestId`, `withCors`, `withOAuthProtectedResource`; your own with
+`defineMiddleware`. Duplicate steps and steps placed before the ones they need are TypeScript errors. Throw
+`HttpError` for JSON errors; `toNodeHandler` serves a pipeline with `node:http`. Docs:
+[stitchdb.com/docs/functions/middleware](https://stitchdb.com/docs/functions/middleware).
+
 ## TypeScript
 
 Generate types for your database and pass them to `createClient`:

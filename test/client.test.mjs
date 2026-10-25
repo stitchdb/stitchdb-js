@@ -50,7 +50,7 @@ test('REST queries: URL, filters, headers', async () => {
   assert.equal(u.searchParams.get('order'), 'id.asc'); assert.equal(u.searchParams.get('limit'), '5')
   assert.equal(calls[0].headers.get('apikey'), KEY)
   assert.equal(calls[0].headers.get('authorization'), `Bearer ${KEY}`)
-  assert.match(calls[0].headers.get('x-client-info'), /^stitchdb-js\/2\.0\.0/)
+  assert.match(calls[0].headers.get('x-client-info'), /^stitchdb-js\/2\.1\.0/)
   await c.rpc('search', { term: 'x' })
   assert.equal(new URL(calls[1].url).pathname, '/rest/v1/rpc/search'); assert.equal(calls[1].method, 'POST')
 })

@@ -1,6 +1,6 @@
 {
   "name": "stitchdb-js",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Official JavaScript and TypeScript client for StitchDB: database, auth, storage, realtime and Edge Functions.",
   "license": "MIT",
   "homepage": "https://stitchdb.com/docs/sdk",
@@ -35,6 +35,11 @@
       "types": "./dist/types/cors.d.ts",
       "import": "./dist/cors.mjs",
       "require": "./dist/cors.cjs"
+    },
+    "./middleware": {
+      "types": "./dist/types/middleware.d.ts",
+      "import": "./dist/middleware.mjs",
+      "require": "./dist/middleware.cjs"
     },
     "./tracing": {
       "types": "./dist/types/tracing.d.ts",
