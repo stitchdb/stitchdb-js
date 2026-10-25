@@ -2,6 +2,7 @@ import type { AuthChangeEvent } from './auth/index'
 import { FunctionsClient } from './functions/index'
 import { PushClient } from './push'
 import { search, type SearchOptions, type SearchResponse } from './search'
+import { OfflineClient, type OfflineOptions } from './offline'
 import { PurchasesClient } from './purchases'
 import { OrgsClient } from './orgs'
 import { withHistory } from './realtime-history'
@@ -99,6 +100,7 @@ export default class StitchClient<
   protected purchasesUrl: URL
   protected historyUrl: URL
   protected searchUrl: URL
+  protected syncUrl: URL
   protected rest: PostgrestClient<Database, ClientOptions, SchemaName>
   protected storageKey: string
   protected fetch?: Fetch
@@ -341,6 +343,7 @@ export default class StitchClient<
     this.purchasesUrl = new URL('purchases/v1', baseUrl)
     this.historyUrl = new URL('history/v1', baseUrl)
     this.searchUrl = new URL('search/v1', baseUrl)
+    this.syncUrl = new URL('sync/v1', baseUrl)
 
     // default storage key uses the project ref as a namespace
     const projectRef = baseUrl.hostname.split('.')[0]
@@ -471,6 +474,20 @@ export default class StitchClient<
    */
   search<Row = Record<string, unknown>>(table: string, q: string, options?: SearchOptions): Promise<SearchResponse<Row>> {
     return search<Row>(this.searchUrl.href, this.fetch!, table, q, options)
+  }
+
+  /**
+   * Offline-first sync: a local copy (IndexedDB in browsers) of the rows the signed-in user may see in tables that
+   * sync (Studio › Database › Offline sync). Reads are local; writes apply locally at once and are pushed when online.
+   *
+   * @example
+   * const offline = stitchdb.offline({ tables: ['todos'] })
+   * await offline.ready
+   * await offline.table('todos').upsert({ id: crypto.randomUUID(), title: 'Milk' })
+   * offline.table('todos').subscribe((rows) => render(rows))
+   */
+  offline(options: OfflineOptions = {}): OfflineClient {
+    return new OfflineClient(this.syncUrl.href, this.fetch!, options, `stitchdb-offline-${this.syncUrl.hostname.split('.')[0]}`)
   }
 
   /**

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { createRequire } from 'node:module'
-import { createClient, StitchClient, AuthError } from '../dist/index.mjs'
+import { createClient, StitchClient, AuthError, MemoryStore } from '../dist/index.mjs'
 
 const URL_ = 'https://abcdefghijklmnop.stitchdb.com'
 const KEY = 'eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiJ9.c2ln'
@@ -164,6 +164,35 @@ test('search: POST /search/v1/<table>, errors returned not thrown', async () => 
   assert.equal(calls[0].headers.get('apikey'), KEY)
   const bad = await c.search('nope', 'x')
   assert.equal(bad.data, null); assert.equal(bad.error.name, 'SearchError'); assert.equal(bad.error.status, 404)
+})
+
+test('offline: writes queue while the server is down and survive a restart of the app', async () => {
+  let up = false
+  const pushed = []
+  const { fetch } = mockFetch((c) => {
+    if (!up) return [503, { message: 'down' }]
+    if (c.url.endsWith('/sync/v1/tables')) return [200, { tables: [{ name: 'todos', pk: ['id'], conflict: 'last_write_wins' }] }]
+    if (c.url.endsWith('/sync/v1/push')) { const b = JSON.parse(c.body); pushed.push(...b.mutations); return [200, { results: b.mutations.map((m) => ({ id: m.id, status: 'applied', seq: 7, pk: { id: m.row.id }, row: m.row })) }] }
+    if (c.url.endsWith('/sync/v1/pull')) return [200, { changes: { todos: [{ seq: 8, op: 'u', pk: { id: 'b' }, row: { id: 'b', title: 'from server' } }] }, cursors: { todos: 8 }, more: false, reset: [] }]
+  })
+  const store = new MemoryStore()
+  const c = createClient(URL_, KEY, { auth: { persistSession: false }, global: { fetch } })
+  up = true
+  let off = c.offline({ store, interval: 0 }); await off.ready; await off.sync().catch(() => {})
+  up = false
+  await off.table('todos').upsert({ id: 'a', title: 'offline' })
+  assert.equal(off.status.pending, 1)
+  await off.close()
+  off = c.offline({ store, interval: 0 }); await off.ready
+  assert.equal(off.status.pending, 1, 'queue persisted')
+  assert.equal(off.table('todos').get('a').title, 'offline')
+  up = true
+  await off.sync()
+  assert.equal(off.status.pending, 0)
+  assert.deepEqual(pushed.map((m) => [m.table, m.op, m.row.title, m.base]), [['todos', 'upsert', 'offline', null]])
+  assert.match(pushed[0].id, /^[A-Za-z0-9_-]{16}\.\d+$/)
+  assert.equal(off.table('todos').get('b').title, 'from server')
+  await off.close({ clear: true })
 })
 
 test('purchases: sync, me and entitlements go to /purchases/v1', async () => {

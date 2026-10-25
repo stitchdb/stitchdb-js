@@ -133,6 +133,23 @@ await stitchdb.orgs.setActive(org.id)                              // JWT now ca
 
 In your policies: `auth.is_member(org_id)`, `auth.has_role('admin', org_id)`, `auth.org_id()`.
 
+### Offline sync
+
+Keep a copy of tables on the device: reads are instant, writes work offline and sync later. Turn it on per table in Studio → Database → Offline sync.
+
+```js
+const db = stitchdb.offline({ tables: ['todos'] })   // IndexedDB in the browser
+await db.ready
+
+const todos = db.table('todos')
+await todos.upsert({ id: crypto.randomUUID(), title: 'Buy milk' })  // queued until online
+todos.all()                                                          // local rows
+todos.subscribe((rows) => render(rows))
+db.on('conflict', (c) => console.log(c.table, c.status, c.server))
+db.on('status', (s) => console.log(s.online, s.pending))
+await db.close({ clear: true })                                      // on sign-out
+```
+
 ## Server middleware
 
 `stitchdb-js/middleware` builds fetch handlers (Edge Functions, Deno, Bun, Cloudflare Workers, Vercel, Node) from
