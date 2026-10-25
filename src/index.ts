@@ -35,6 +35,8 @@ export type { CollabOptions, OpenOptions as CollabOpenOptions, CollabStatus, YMo
 export { JobsClient, JobsError } from './jobs'
 export { FlagsClient, FlagsError } from './flags'
 export type { FlagValue, FlagAttributes, FlagsLoadOptions, FlagUser } from './flags'
+export { MeteringClient, MeteringError } from './metering'
+export type { MeterEvent, UsageRow, UsageQuery, UsageResult, CustomerTotals } from './metering'
 export type { JobRunInfo, JobStatus, StartOptions, JobLogLine } from './jobs'
 export type { SearchOptions, SearchResponse, SearchScore } from './search'
 export { PurchasesClient, PurchasesError } from './purchases'

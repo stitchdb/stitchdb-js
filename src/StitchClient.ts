@@ -6,6 +6,7 @@ import { OfflineClient, type OfflineOptions } from './offline'
 import { CollabClient, type CollabOptions } from './collab'
 import { JobsClient } from './jobs'
 import { FlagsClient } from './flags'
+import { MeteringClient } from './metering'
 import { PurchasesClient } from './purchases'
 import { OrgsClient } from './orgs'
 import { withHistory } from './realtime-history'
@@ -103,6 +104,7 @@ export default class StitchClient<
   protected purchasesUrl: URL
   protected jobsUrl: URL
   protected flagsUrl: URL
+  protected meteringUrl: URL
   private _flags?: FlagsClient
   protected historyUrl: URL
   protected searchUrl: URL
@@ -350,6 +352,7 @@ export default class StitchClient<
     this.purchasesUrl = new URL('purchases/v1', baseUrl)
     this.jobsUrl = new URL('jobs/v1', baseUrl)
     this.flagsUrl = new URL('flags/v1', baseUrl)
+    this.meteringUrl = new URL('metering/v1', baseUrl)
     this.historyUrl = new URL('history/v1', baseUrl)
     this.searchUrl = new URL('search/v1', baseUrl)
     this.syncUrl = new URL('sync/v1', baseUrl)
@@ -525,6 +528,16 @@ export default class StitchClient<
    */
   get jobs(): JobsClient {
     return new JobsClient(this.jobsUrl.href, this.fetch!)
+  }
+
+  /**
+   * Usage metering per customer (Studio › Integrations › Usage metering): record what each of your customers uses and
+   * read it back for billing or limits. With the service key for any customer; signed in, for the user's own.
+   * @example
+   * await admin.metering.record('ai_tokens', 1532, { customer: org.id, idempotencyKey: completion.id })
+   */
+  get metering(): MeteringClient {
+    return new MeteringClient(this.meteringUrl.href, this.fetch!)
   }
 
   /**

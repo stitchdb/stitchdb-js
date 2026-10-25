@@ -399,3 +399,26 @@ test('flags: load, get with defaults, change events, last values kept on errors'
   assert.equal(c.flags.get('limit', 10), 25, 'last values kept')
   c.flags.stop()
 })
+
+test('metering: record, recordMany, usage, customers, exportCsv', async () => {
+  const { fetch, calls } = mockFetch((c) => {
+    if (c.url.includes('/export')) return [200, 'customer,meter,period,value\nacme,ai_tokens,2026-10-25,1532\n']
+    if (c.url.includes('/record')) return JSON.parse(c.body).meter === 'nope' ? [400, { message: 'There is no meter "nope"' }] : [200, { recorded: 1, duplicates: 0 }]
+    return [200, { rows: [], meters: {}, customers: [] }]
+  })
+  const c = createClient(URL_, KEY, { auth: { persistSession: false }, global: { fetch } })
+  const r = await c.metering.record('ai_tokens', 1532, { customer: 'acme', idempotencyKey: 'cmpl-1', at: new Date('2026-10-25T10:00:00Z') })
+  assert.deepEqual(r, { data: { recorded: 1, duplicates: 0 }, error: null })
+  assert.equal(calls[0].url, `${URL_}/metering/v1/record`); assert.equal(calls[0].method, 'POST')
+  assert.deepEqual(JSON.parse(calls[0].body), { meter: 'ai_tokens', quantity: 1532, customer: 'acme', idempotency_key: 'cmpl-1', at: '2026-10-25T10:00:00.000Z' })
+  await c.metering.recordMany([{ meter: 'seats', quantity: 4, customer: 'acme' }])
+  assert.deepEqual(JSON.parse(calls[1].body), { events: [{ meter: 'seats', quantity: 4, customer: 'acme' }] })
+  const bad = await c.metering.record('nope')
+  assert.equal(bad.data, null); assert.equal(bad.error.status, 400); assert.match(bad.error.message, /no meter/)
+  await c.metering.usage({ customer: 'acme', group: 'month', from: new Date('2026-10-01T00:00:00Z') })
+  assert.equal(calls[3].url, `${URL_}/metering/v1/usage?customer=acme&group=month&from=2026-10-01T00%3A00%3A00.000Z`)
+  await c.metering.customers({ limit: 5 })
+  assert.equal(calls[4].url, `${URL_}/metering/v1/customers?limit=5`)
+  const csv = await c.metering.exportCsv({ group: 'day' })
+  assert.match(csv.data, /^customer,meter,period,value/); assert.match(calls[5].url, /\/export\?group=day&format=csv$/)
+})
