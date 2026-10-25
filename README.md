@@ -206,6 +206,20 @@ const { data } = await admin.flags.evaluate({ id: user.id, email: user.email, ap
 
 Flags are evaluated for the signed-in user from the session; the last values are kept in localStorage, so `get` answers at once on the next start and keeps working offline.
 
+### Usage metering
+
+Count what each of your customers uses (AI tokens, documents, minutes, seats) for billing or plan limits. Set meters up in Studio › Integrations › Usage metering; API requests and file storage per user can be counted automatically.
+
+```js
+// server side, with the service key: any customer, the same idempotency key is counted once
+await admin.metering.record('ai_tokens', 1532, { customer: org.id, idempotencyKey: completion.id })
+const { data } = await admin.metering.usage({ customer: org.id, group: 'month' })
+const { data: csv } = await admin.metering.exportCsv({ from: '2026-10-01', to: '2026-11-01', group: 'month' })
+
+// in the app, signed in: meters marked "apps may record", for the user's own customer
+await stitchdb.metering.record('exports')
+```
+
 ## Serverless SQL (edge runtimes)
 
 `stitchdb-js/sql` sends Postgres queries over HTTPS and WebSocket, so it works in Cloudflare Workers, Vercel Edge, Deno Deploy and other runtimes that can't open TCP connections. Turn it on and create a SQL key in Studio › Database › Serverless SQL. The connection URL looks like `https://sdb_sql_...@<ref>.stitchdb.com`.
