@@ -3,6 +3,7 @@ import { FunctionsClient } from './functions/index'
 import { PushClient } from './push'
 import { PurchasesClient } from './purchases'
 import { OrgsClient } from './orgs'
+import { withHistory } from './realtime-history'
 import {
   PostgrestClient,
   type PostgrestFilterBuilder,
@@ -95,6 +96,7 @@ export default class StitchClient<
   protected functionsUrl: URL
   protected pushUrl: URL
   protected purchasesUrl: URL
+  protected historyUrl: URL
   protected rest: PostgrestClient<Database, ClientOptions, SchemaName>
   protected storageKey: string
   protected fetch?: Fetch
@@ -335,6 +337,7 @@ export default class StitchClient<
     this.functionsUrl = new URL('functions/v1', baseUrl)
     this.pushUrl = new URL('push/v1', baseUrl)
     this.purchasesUrl = new URL('purchases/v1', baseUrl)
+    this.historyUrl = new URL('history/v1', baseUrl)
 
     // default storage key uses the project ref as a namespace
     const projectRef = baseUrl.hostname.split('.')[0]
@@ -620,6 +623,14 @@ export default class StitchClient<
           .then(() => subscribe(callback, timeout))
         return ch
       }) as RealtimeChannel['subscribe']
+    }
+    const history = opts.config?.history
+    if (history) {
+      withHistory(ch, history, {
+        url: this.historyUrl.href,
+        fetch: this.fetch!,
+        headers: async () => ({ apikey: this.stitchKey, Authorization: `Bearer ${await this._getAccessToken()}` }),
+      })
     }
     return ch
   }

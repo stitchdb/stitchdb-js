@@ -187,3 +187,48 @@ test('orgs: calls the org_* functions over /rest/v1/rpc and maps errors', async 
   await assert.rejects(c.orgs.setRole('o1', 'u', 'member'), (e) => e.name === 'OrgsError' && e.status === 403 && e.code === '42501')
   await assert.rejects(c.orgs.list(), (e) => e.name === 'OrgsError' && /not turned on/.test(e.message))
 })
+
+test('realtime history: missed broadcasts are replayed in order after a rejoin, without duplicates; publish stores', async () => {
+  const { RealtimeChannel } = await import('../dist/index.mjs')
+  const proto = RealtimeChannel.prototype, orig = { on: proto.on, subscribe: proto.subscribe }
+  proto.on = function (type, filter, cb) { (this._t ||= []).push([type, filter, cb]); return this }
+  proto.subscribe = function (cb) { this._cb = cb; return this }
+  try {
+    let stored = [{ id: 'm1', event: 'msg', payload: { n: 1 } }, { id: 'm2', event: 'msg', payload: { n: 2 } }, { id: 'm3', event: 'other', payload: { n: 3 } }]
+    const { fetch, calls } = mockFetch((c) => {
+      const u = new URL(c.url)
+      if (u.pathname === '/history/v1/messages' && c.method === 'POST') return [201, { id: 'p1', inserted_at: 'now' }]
+      if (u.pathname === '/history/v1/messages') {
+        const after = u.searchParams.get('after')
+        const rest = after ? stored.slice(stored.findIndex((m) => m.id === after) + 1) : stored
+        return [200, { messages: rest, more: false, gap: false }]
+      }
+      return [200, {}]
+    })
+    const c = createClient(URL_, KEY, { auth: { persistSession: false }, global: { fetch }, accessToken: async () => KEY })
+    const ch = c.channel('room-1', { config: { private: true, history: { since: 0 } } })
+    const got = []
+    ch.on('broadcast', { event: 'msg' }, (m) => got.push([m.payload.n, !!m.meta?.replayed]))
+    ch.subscribe()
+    const liveCb = ch._t.find(([t]) => t === 'broadcast')[2]
+    ch._cb('SUBSCRIBED')
+    liveCb({ type: 'broadcast', event: 'msg', payload: { n: 2 }, meta: { id: 'm2' } }) // also live while catching up
+    await new Promise((r) => setTimeout(r, 20))
+    assert.deepEqual(got, [[1, true], [2, false]]) // m2 came live during the catch-up: delivered once, after m1
+    let u = new URL(calls[0].url)
+    assert.equal(u.searchParams.get('topic'), 'room-1'); assert.equal(u.searchParams.get('since'), '0'); assert.equal(u.searchParams.get('private'), 'true')
+    // live message, then a disconnect: m5 and m6 were sent while away
+    liveCb({ type: 'broadcast', event: 'msg', payload: { n: 4 }, meta: { id: 'm4' } })
+    stored = [...stored, { id: 'm4', event: 'msg', payload: { n: 4 } }, { id: 'm5', event: 'msg', payload: { n: 5 } }, { id: 'm6', event: 'msg', payload: { n: 6 } }]
+    ch._cb('SUBSCRIBED')
+    await new Promise((r) => setTimeout(r, 20))
+    assert.deepEqual(got.map((g) => g[0]), [1, 2, 4, 5, 6])
+    u = new URL(calls.at(-1).url)
+    assert.equal(u.searchParams.get('after'), 'm4')
+    const p = await ch.publish('msg', { n: 7 })
+    assert.equal(p.id, 'p1')
+    assert.deepEqual(JSON.parse(calls.at(-1).body), { topic: 'room-1', event: 'msg', payload: { n: 7 }, private: true })
+    assert.equal(calls.at(-1).headers.get('apikey'), KEY)
+    await assert.rejects(c.channel('plain').publish('x', {}), /history: true/)
+  } finally { Object.assign(proto, orig) }
+})

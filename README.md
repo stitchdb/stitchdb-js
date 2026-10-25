@@ -69,6 +69,15 @@ stitchdb
   .subscribe()
 ```
 
+No lost messages: with message history on (Studio → Realtime inspector → Message history), a channel created with
+`history: true` gets the broadcasts it missed while offline, in order, when it reconnects.
+
+```js
+const chat = stitchdb.channel('chat:42', { config: { private: true, history: true } })
+chat.on('broadcast', { event: 'message' }, ({ payload, meta }) => render(payload, meta?.replayed)).subscribe()
+await chat.publish('message', { text: 'hi' }) // stored, then delivered; resolves when stored
+```
+
 ### Edge Functions
 
 ```js

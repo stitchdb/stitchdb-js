@@ -98,6 +98,14 @@ export type RealtimeChannelOptions = {
        */
       timeout?: number
     }
+    /**
+     * StitchDB message history: after a reconnect, broadcasts sent while the client was away are
+     * delivered to your `broadcast` listeners, in order and without duplicates (`meta.replayed: true`).
+     * Covers broadcasts stored by the project: sent from the database (`realtime.send()`) or with
+     * `channel.publish()`. Turn it on in Studio (Realtime inspector → Message history); kept for a
+     * few minutes depending on the plan. `since` also replays on the first join (e.g. `Date.now() - 60000`).
+     */
+    history?: boolean | { since?: number | Date; onError?: (error: Error) => void }
   }
 }
 
@@ -1049,6 +1057,20 @@ export default class RealtimeChannel {
    * }
    * ```
    */
+  /** @internal set by StitchClient for channels with `config.history` */
+  _history?: { publish(event: string, payload: Record<string, unknown>): Promise<{ id: string; inserted_at: string }> }
+
+  /**
+   * Send a broadcast that is stored, so clients that are offline get it when they reconnect
+   * (needs `config: { history: true }` and message history turned on for the project). Resolves
+   * once the message is stored: that is the delivery acknowledgement. On private channels your
+   * Realtime policies on `realtime.messages` decide who may send.
+   */
+  publish(event: string, payload: Record<string, unknown> = {}): Promise<{ id: string; inserted_at: string }> {
+    if (!this._history) return Promise.reject(new Error('publish() needs a channel created with config: { history: true }'))
+    return this._history.publish(event, payload)
+  }
+
   async send(
     args: {
       type: 'broadcast' | 'presence' | 'postgres_changes'
