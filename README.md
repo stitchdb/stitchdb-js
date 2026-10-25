@@ -49,6 +49,12 @@ stitchdb.auth.onAuthStateChange((event, session) => {})
 await stitchdb.auth.signOut()
 ```
 
+No auth screens of your own: turn on **Authentication › Hosted sign-in** in Studio and send users to the hosted page (sign-in, sign-up, sign-in links, password reset, two-step). With `flowType: 'pkce'` they come back with a one-time code the client exchanges for a session.
+
+```js
+await stitchdb.auth.signInWithHostedPage({ redirectTo: 'https://yourapp.com/auth/callback', view: 'sign-up' })
+```
+
 Also available: phone and SMS OTP, SAML SSO, Web3 (Ethereum and Solana) sign-in, passkeys, identity linking and the admin API (with the service_role key).
 
 ### Storage

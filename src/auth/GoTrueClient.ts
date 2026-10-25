@@ -1294,6 +1294,57 @@ export default class GoTrueClient {
   }
 
   /**
+   * Sends the user to the project's hosted sign-in page (Studio › Authentication › Hosted sign-in): sign-in, sign-up,
+   * e-mail link or code, password reset and two-step codes, in your app's name and colours, with no auth screens to
+   * build. After signing in the user comes back to `redirectTo` (one of the project's Redirect URLs) and the session is
+   * picked up from the URL as after an OAuth sign-in. With `flowType: 'pkce'` a one-time code comes back instead and is
+   * exchanged with `exchangeCodeForSession(code)` (done for you when `detectSessionInUrl` is on).
+   *
+   * @category Auth
+   *
+   * @example Send the user to the hosted page
+   * ```js
+   * await stitchdb.auth.signInWithHostedPage({ redirectTo: 'https://example.com/account' })
+   * ```
+   *
+   * @example Open on the sign-up form, in German, and only get the URL
+   * ```js
+   * const { data } = await stitchdb.auth.signInWithHostedPage({ view: 'sign-up', lang: 'de', skipBrowserRedirect: true })
+   * ```
+   */
+  async signInWithHostedPage(
+    options: {
+      /** Where the user comes back to; default the current page. Must be one of the project's Redirect URLs. */
+      redirectTo?: string
+      /** Which form opens first. */
+      view?: 'sign-in' | 'sign-up' | 'magic-link' | 'forgot'
+      /** A language code such as `de`; default the browser's language. */
+      lang?: string
+      /** Only return the URL, without going there. */
+      skipBrowserRedirect?: boolean
+    } = {}
+  ): Promise<{ data: { url: string }; error: null } | { data: { url: null }; error: AuthError }> {
+    try {
+      const page = new URL(this.url.replace(/\/auth\/v1\/?$/, '') + '/login/v1/')
+      let redirectTo = options.redirectTo ?? (isBrowser() ? window.location.href.split('#')[0] : undefined)
+      if (this.flowType === 'pkce') {
+        const [codeChallenge, codeChallengeMethod, flowId] = await this._getCodeChallengeAndMethod()
+        redirectTo = this._maybeAppendFlowIdToRedirect(redirectTo, flowId)
+        page.searchParams.set('code_challenge', codeChallenge)
+        page.searchParams.set('code_challenge_method', codeChallengeMethod)
+      }
+      if (redirectTo) page.searchParams.set('redirect_to', redirectTo)
+      if (options.view) page.searchParams.set('view', options.view)
+      if (options.lang) page.searchParams.set('lang', options.lang)
+      if (isBrowser() && !options.skipBrowserRedirect) window.location.assign(page.href)
+      return this._returnResult({ data: { url: page.href }, error: null })
+    } catch (error) {
+      if (isAuthError(error)) return this._returnResult({ data: { url: null }, error })
+      throw error
+    }
+  }
+
+  /**
    * Log in an existing user via a third-party provider.
    * This method supports the PKCE flow.
    *
@@ -2055,13 +2106,15 @@ export default class GoTrueClient {
         throw new AuthPKCECodeVerifierMissingError()
       }
 
+      // Codes from the hosted sign-in page (signInWithHostedPage) are exchanged with the page itself.
+      const hosted = authCode.startsWith('sdbl_')
       const { data, error } = await _request(
         this.fetch,
         'POST',
-        `${this.url}/token?grant_type=pkce`,
+        hosted ? `${this.url.replace(/\/auth\/v1\/?$/, '')}/login/v1/token` : `${this.url}/token?grant_type=pkce`,
         {
           headers: this.headers,
-          body: {
+          body: hosted ? { code: authCode, code_verifier: codeVerifier } : {
             auth_code: authCode,
             code_verifier: codeVerifier,
           },
