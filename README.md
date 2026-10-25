@@ -171,6 +171,24 @@ Deno.serve(job(async (payload, ctx) => {
 await admin.jobs.start('onboarding', { user_id }, { idempotencyKey: `onboarding:${user_id}` })
 ```
 
+Job mode: one long run (up to 15 min on Pro, 60 min on Scale) for light, mostly-waiting work such as imports, batch e-mails or AI calls over many documents, with progress, a log and checkpoints. Heavy CPU work (video, image processing) is not supported.
+
+```ts
+import { longJob } from 'stitchdb-js/jobs'
+
+Deno.serve(longJob(async (payload, ctx) => {
+  const rows = await loadCsv(payload.url)
+  for (let i = ctx.checkpoint?.next ?? 0; i < rows.length; i++) {
+    await importRow(rows[i])
+    ctx.progress((i + 1) / rows.length, `${i + 1} of ${rows.length}`)
+    if (i % 500 === 0) ctx.save({ next: i + 1 })
+  }
+  return { imported: rows.length }
+}))
+
+// await admin.jobs.start('import-csv', { url }, { mode: 'long' }); await admin.jobs.logs(id)
+```
+
 ## Serverless SQL (edge runtimes)
 
 `stitchdb-js/sql` sends Postgres queries over HTTPS and WebSocket, so it works in Cloudflare Workers, Vercel Edge, Deno Deploy and other runtimes that can't open TCP connections. Turn it on and create a SQL key in Studio › Database › Serverless SQL. The connection URL looks like `https://sdb_sql_...@<ref>.stitchdb.com`.

@@ -19,6 +19,27 @@
  * Start a run from your server with `stitchdb.jobs.start('onboarding', { user_id })` (service key), from SQL with
  * `select stitch_jobs_enqueue('onboarding', jsonb_build_object('user_id', id))`, or in Studio.
  *
+ * Job mode: for light, mostly-waiting work that needs one long call (imports, batch e-mails, AI calls over many
+ * documents, syncs with other APIs), wrap the handler in {@link longJob} and start it with `{ mode: 'long' }`. It runs
+ * for up to the plan's job-mode minutes (15 on Pro, 60 on Scale) with a small CPU allowance, and reports progress,
+ * logs and checkpoints. Heavy CPU work (video encoding, image processing) is not supported.
+ *
+ * ```ts
+ * import { longJob } from 'https://stitchdb.com/sdk/stitchdb-jobs.mjs'
+ *
+ * Deno.serve(longJob(async (payload, ctx) => {
+ *   const rows = await loadCsv(payload.url)
+ *   let i = ctx.checkpoint?.next ?? 0              // continue after a restart
+ *   for (; i < rows.length; i++) {
+ *     await importRow(rows[i])
+ *     ctx.progress((i + 1) / rows.length, `${i + 1} of ${rows.length} rows`)
+ *     if (i % 500 === 0) ctx.save({ next: i + 1 })
+ *   }
+ *   ctx.log('import finished')
+ *   return { imported: rows.length }
+ * }))
+ * ```
+ *
  * @module jobs
  */
 import type { Fetch } from './lib/types'
@@ -150,22 +171,112 @@ export async function execute<P, R>(handler: JobHandler<P, R>, run: JobRun, payl
   }
 }
 
+// ---------- job mode (one long run) ----------
+
+export interface LongJobContext<C = any> {
+  /** The run: its id, the job name, the attempt (1, 2, … after a restart) and when it was started. */
+  run: JobRun & { mode: 'long' }
+  /** The last data passed to {@link LongJobContext.save} in an earlier attempt, or null. */
+  checkpoint: C | null
+  /** Report progress: a fraction 0 to 1 and an optional message (shown in Studio and in the run). */
+  progress(value: number, message?: string): void
+  /** Add a line to the run's log (at most 5,000 lines per run). */
+  log(...args: unknown[]): void
+  warn(...args: unknown[]): void
+  error(...args: unknown[]): void
+  /** Save a checkpoint (JSON, at most 256 KB): if the run is interrupted, the next attempt gets it as `ctx.checkpoint`. */
+  save(data: C): void
+  /** Aborted when the run is cancelled or stopped: pass it to fetch() and check it in loops. */
+  signal: AbortSignal
+}
+export type LongJobHandler<P = any, R = unknown> = (payload: P, ctx: LongJobContext) => R | Promise<R>
+
+const text = (args: unknown[]) => args.map((a) => typeof a === 'string' ? a : (() => { try { return JSON.stringify(a) } catch { return String(a) } })()).join(' ')
+
+/**
+ * Make an Edge Function a long job (job mode). Returns a `(request) => Response` handler for `Deno.serve`.
+ * Only the StitchDB job worker can call it. Start runs with `stitchdb.jobs.start(name, payload, { mode: 'long' })`.
+ * Throw {@link FatalJobError} to fail without another attempt.
+ */
+export function longJob<P = any, R = unknown>(handler: LongJobHandler<P, R>, options: { serviceKey?: string } = {}): (req: Request) => Promise<Response> {
+  return async (req: Request) => {
+    const key = options.serviceKey || env('STITCHDB_SERVICE_ROLE_KEY') || ''
+    const raw = await req.text()
+    if (!(await verifyJobRequest(req.headers.get('x-stitchdb-job'), raw, key)))
+      return json({ message: 'This function is a long job: start it with stitchdb.jobs.start(name, payload, { mode: \'long\' }), stitch_jobs_enqueue_long() or in Studio' }, 401)
+    const { run, payload, checkpoint = null } = JSON.parse(raw) as { run: JobRun & { mode: 'long' }; payload: P; checkpoint: unknown }
+    const stream = runLong(handler, run, payload, checkpoint, req.signal)
+    return new Response(stream, { headers: { 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-store' } })
+  }
+}
+
+/** Run a long job and return its stream of JSON lines (exported for tests). */
+export function runLong<P, R>(handler: LongJobHandler<P, R>, run: JobRun & { mode: 'long' }, payload: P, checkpoint: unknown, signal?: AbortSignal): ReadableStream<Uint8Array> {
+  const ac = new AbortController()
+  signal?.addEventListener('abort', () => ac.abort(signal.reason), { once: true })
+  let ctrl!: ReadableStreamDefaultController<Uint8Array>
+  let open = true
+  const send = (e: Record<string, unknown>) => { if (open) { try { ctrl.enqueue(enc.encode(JSON.stringify(e) + '\n')) } catch { open = false } } }
+  let lastProgress = 0, pendingProgress: Record<string, unknown> | null = null, timer: ReturnType<typeof setTimeout> | null = null
+  const ctx: LongJobContext = {
+    run, checkpoint: checkpoint ?? null, signal: ac.signal,
+    progress(value, message) {
+      // at most a few updates a second: loops can call this for every item
+      pendingProgress = { t: 'progress', value: Number(value), ...(message != null ? { message: String(message) } : {}) }
+      const wait = 250 - (Date.now() - lastProgress)
+      if (wait <= 0) { lastProgress = Date.now(); send(pendingProgress); pendingProgress = null }
+      else if (!timer) timer = setTimeout(() => { timer = null; if (pendingProgress) { lastProgress = Date.now(); send(pendingProgress); pendingProgress = null } }, wait)
+    },
+    log: (...a) => send({ t: 'log', level: 'info', msg: text(a) }),
+    warn: (...a) => send({ t: 'log', level: 'warn', msg: text(a) }),
+    error: (...a) => send({ t: 'log', level: 'error', msg: text(a) }),
+    save: (data) => send({ t: 'checkpoint', data: data === undefined ? null : data }),
+  }
+  return new ReadableStream<Uint8Array>({
+    start(c) {
+      ctrl = c
+      const ping = setInterval(() => send({ t: 'ping' }), 15000)
+      ;(async () => {
+        try {
+          // let the response start first: a handler that blocks right away still streams its events
+          await new Promise((r) => setTimeout(r, 0))
+          const result = await handler(payload, ctx)
+          if (pendingProgress) send(pendingProgress)
+          send({ t: 'done', result: result === undefined ? null : result })
+        } catch (e: any) {
+          if (pendingProgress) send(pendingProgress)
+          send({ t: 'error', message: e?.message || String(e), retry: !(e instanceof FatalJobError) })
+        } finally {
+          clearInterval(ping); if (timer) clearTimeout(timer)
+          if (open) { open = false; try { c.close() } catch {} }
+        }
+      })()
+    },
+    cancel() { open = false; ac.abort(new Error('The run was stopped')) },
+  })
+}
+
 // ---------- starting and watching runs (server side, with the service key) ----------
 
 export type JobStatus = 'queued' | 'running' | 'sleeping' | 'completed' | 'failed' | 'cancelled'
 export type JobRunInfo<P = any, R = any> = {
-  id: string; job: string; status: JobStatus; payload: P; result: R | null; error: string | null; attempt: number; max_attempts: number
+  id: string; job: string; mode: 'steps' | 'long'; status: JobStatus; payload: P; result: R | null; error: string | null; attempt: number; max_attempts: number
   idempotency_key: string | null; run_at: string; created_at: string; started_at: string | null; finished_at: string | null
   steps?: { name: string; kind: 'step' | 'sleep'; status: string; output: unknown; error: string | null; attempts: number; wake_at: string | null }[]
+  /** Long runs (job mode): progress 0 to 1, the last progress message, billed seconds and the last checkpoint. */
+  progress?: number | null; message?: string | null; seconds?: number; checkpoint?: unknown
 }
+export type JobLogLine = { seq: number; at: string; level: 'info' | 'warn' | 'error' | 'debug'; line: string }
 export type StartOptions = {
   /** The same job and key start one run only; a repeat returns the first run with `duplicate: true`. */
   idempotencyKey?: string
   /** Start after this many seconds, or at `runAt`. */
   delay?: number
   runAt?: Date | string
-  /** Attempts per step before the run fails (default 5). */
+  /** Attempts per step before the run fails (default 5; for long runs, attempts after an interruption, default 1). */
   maxAttempts?: number
+  /** `'long'`: job mode, one long call to a function wrapped in {@link longJob}. */
+  mode?: 'steps' | 'long'
 }
 type Result<T> = { data: T; error: null } | { data: null; error: JobsError }
 
@@ -188,7 +299,12 @@ export class JobsClient {
   /** Start a run of the job (the Edge Function with this name). */
   start<P = any>(job: string, payload?: P, options: StartOptions = {}): Promise<Result<JobRunInfo<P> & { duplicate: boolean }>> {
     return this.req('/runs', { body: { job, payload: payload ?? {}, idempotency_key: options.idempotencyKey, delay: options.delay,
-      run_at: options.runAt instanceof Date ? options.runAt.toISOString() : options.runAt, max_attempts: options.maxAttempts } })
+      run_at: options.runAt instanceof Date ? options.runAt.toISOString() : options.runAt, max_attempts: options.maxAttempts, mode: options.mode } })
+  }
+  /** A long run's log lines after `after` (the `next` of the previous call), oldest first. */
+  logs(id: string, options: { after?: number; limit?: number } = {}): Promise<Result<{ lines: JobLogLine[]; next: number; more: boolean }>> {
+    const q = new URLSearchParams(Object.entries(options).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)]))
+    return this.req(`/runs/${encodeURIComponent(id)}/logs${q.size ? `?${q}` : ''}`)
   }
   /** A run with its steps. */
   get(id: string): Promise<Result<JobRunInfo>> { return this.req(`/runs/${encodeURIComponent(id)}`) }
