@@ -371,3 +371,31 @@ test('collab: needs the yjs module, connects to /collab/v1/ws, syncs a document 
   assert.deepEqual(sent.at(-1), { t: 'presence', doc: 'doc-1', state: { cursor: 2 } })
   collab.close()
 })
+
+test('flags: load, get with defaults, change events, last values kept on errors', async () => {
+  let answer = [200, { flags: { 'new-checkout': { value: true, variation: 0, reason: 'default' }, limit: { value: 25, variation: 1, reason: 'rule:0' } }, version: 3, user_id: null }]
+  const { fetch, calls } = mockFetch((c) => (c.url.endsWith('/flags/v1/evaluate') ? answer : [404, {}]))
+  const c = createClient(URL_, KEY, { auth: { persistSession: false }, global: { fetch } })
+  assert.equal(c.flags, c.flags, 'one flags client per StitchDB client')
+  assert.equal(c.flags.get('new-checkout', false), false, 'the default before loading')
+  const r = await c.flags.load({ attributes: { app_version: '2.4.1' }, refreshInterval: 0 })
+  assert.equal(r.error, null)
+  assert.equal(c.flags.isOn('new-checkout'), true)
+  assert.equal(c.flags.get('limit', 10), 25)
+  assert.equal(c.flags.get('missing', 'x'), 'x')
+  assert.equal(c.flags.configVersion, 3)
+  const body = JSON.parse(calls.at(-1).body)
+  assert.deepEqual(body.attributes, { app_version: '2.4.1' }); assert.ok(body.anon_id)
+  assert.equal(calls.at(-1).headers.get('apikey'), KEY)
+  let changed = null
+  const off = c.flags.on('change', (keys) => { changed = keys })
+  answer = [200, { flags: { 'new-checkout': { value: false, variation: 1, reason: 'off' }, limit: { value: 25, variation: 1, reason: 'rule:0' } }, version: 4 }]
+  await c.flags.refresh()
+  assert.deepEqual(changed, ['new-checkout'])
+  off()
+  answer = [429, { message: 'used up' }]
+  const e = await c.flags.refresh()
+  assert.equal(e.error.status, 429)
+  assert.equal(c.flags.get('limit', 10), 25, 'last values kept')
+  c.flags.stop()
+})

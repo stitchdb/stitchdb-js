@@ -5,6 +5,7 @@ import { search, type SearchOptions, type SearchResponse } from './search'
 import { OfflineClient, type OfflineOptions } from './offline'
 import { CollabClient, type CollabOptions } from './collab'
 import { JobsClient } from './jobs'
+import { FlagsClient } from './flags'
 import { PurchasesClient } from './purchases'
 import { OrgsClient } from './orgs'
 import { withHistory } from './realtime-history'
@@ -101,6 +102,8 @@ export default class StitchClient<
   protected pushUrl: URL
   protected purchasesUrl: URL
   protected jobsUrl: URL
+  protected flagsUrl: URL
+  private _flags?: FlagsClient
   protected historyUrl: URL
   protected searchUrl: URL
   protected syncUrl: URL
@@ -346,6 +349,7 @@ export default class StitchClient<
     this.pushUrl = new URL('push/v1', baseUrl)
     this.purchasesUrl = new URL('purchases/v1', baseUrl)
     this.jobsUrl = new URL('jobs/v1', baseUrl)
+    this.flagsUrl = new URL('flags/v1', baseUrl)
     this.historyUrl = new URL('history/v1', baseUrl)
     this.searchUrl = new URL('search/v1', baseUrl)
     this.syncUrl = new URL('sync/v1', baseUrl)
@@ -521,6 +525,21 @@ export default class StitchClient<
    */
   get jobs(): JobsClient {
     return new JobsClient(this.jobsUrl.href, this.fetch!)
+  }
+
+  /**
+   * Feature flags and remote config (Studio › Integrations › Feature flags): values for the signed-in user, kept
+   * between starts and refreshed on sign-in, sign-out and every minute. One client per StitchDB client.
+   *
+   * ```js
+   * await stitchdb.flags.load({ attributes: { app_version: '2.4.1' } })
+   * if (stitchdb.flags.get('new-checkout', false)) showNewCheckout()
+   * ```
+   */
+  get flags(): FlagsClient {
+    return (this._flags ||= new FlagsClient(this.flagsUrl.href, this.fetch!, `stitchdb-${this.flagsUrl.hostname.split('.')[0]}-flags`, (cb) => {
+      this.auth.onAuthStateChange((event) => { if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') cb() })
+    }))
   }
 
   /**

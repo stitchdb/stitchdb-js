@@ -33,6 +33,8 @@ export type { OfflineOptions, OfflineStore, SyncStatus, ConflictEvent } from './
 export { CollabClient, CollabRoom, CollabError } from './collab'
 export type { CollabOptions, OpenOptions as CollabOpenOptions, CollabStatus, YModule, SnapshotInfo, DocumentInfo as CollabDocument } from './collab'
 export { JobsClient, JobsError } from './jobs'
+export { FlagsClient, FlagsError } from './flags'
+export type { FlagValue, FlagAttributes, FlagsLoadOptions, FlagUser } from './flags'
 export type { JobRunInfo, JobStatus, StartOptions, JobLogLine } from './jobs'
 export type { SearchOptions, SearchResponse, SearchScore } from './search'
 export { PurchasesClient, PurchasesError } from './purchases'

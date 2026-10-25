@@ -189,6 +189,23 @@ Deno.serve(longJob(async (payload, ctx) => {
 // await admin.jobs.start('import-csv', { url }, { mode: 'long' }); await admin.jobs.logs(id)
 ```
 
+### Feature flags
+
+Turn features on for some users (a plan, a segment, a percentage) and read config values your app uses at runtime, changed in Studio › Integrations › Feature flags without a release.
+
+```js
+await stitchdb.flags.load({ attributes: { app_version: '2.4.1', country: 'DE' } })
+
+if (stitchdb.flags.get('new-checkout', false)) showNewCheckout()
+const limit = stitchdb.flags.get('upload-limit-mb', 10)   // the default until a value is known
+stitchdb.flags.on('change', () => render())               // refreshes on sign-in, sign-out and every minute
+
+// server side, with the service key (includes server-only flags)
+const { data } = await admin.flags.evaluate({ id: user.id, email: user.email, app_metadata: user.app_metadata })
+```
+
+Flags are evaluated for the signed-in user from the session; the last values are kept in localStorage, so `get` answers at once on the next start and keeps working offline.
+
 ## Serverless SQL (edge runtimes)
 
 `stitchdb-js/sql` sends Postgres queries over HTTPS and WebSocket, so it works in Cloudflare Workers, Vercel Edge, Deno Deploy and other runtimes that can't open TCP connections. Turn it on and create a SQL key in Studio › Database › Serverless SQL. The connection URL looks like `https://sdb_sql_...@<ref>.stitchdb.com`.
