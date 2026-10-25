@@ -150,6 +150,27 @@ db.on('status', (s) => console.log(s.online, s.pending))
 await db.close({ clear: true })                                      // on sign-out
 ```
 
+### Background jobs
+
+Durable multi-step jobs as Edge Functions: each step runs once and is saved, failing steps are retried, runs can sleep for days. Turn it on in Studio → Edge Functions → Background jobs.
+
+```ts
+// functions/onboarding/index.ts
+import { job } from 'stitchdb-js/jobs'   // or https://stitchdb.com/sdk/stitchdb-jobs.mjs
+
+Deno.serve(job(async (payload, ctx) => {
+  const user = await ctx.step('load user', () => loadUser(payload.user_id))
+  await ctx.step('welcome e-mail', () => sendWelcome(user.email))
+  await ctx.sleep('wait a day', '1d')
+  await ctx.step('tips e-mail', () => sendTips(user.email))
+}))
+```
+
+```js
+// on your server, with the service key
+await admin.jobs.start('onboarding', { user_id }, { idempotencyKey: `onboarding:${user_id}` })
+```
+
 ## Server middleware
 
 `stitchdb-js/middleware` builds fetch handlers (Edge Functions, Deno, Bun, Cloudflare Workers, Vercel, Node) from

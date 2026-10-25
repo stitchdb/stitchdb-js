@@ -275,3 +275,39 @@ test('realtime history: missed broadcasts are replayed in order after a rejoin, 
     await assert.rejects(c.channel('plain').publish('x', {}), /history: true/)
   } finally { Object.assign(proto, orig) }
 })
+
+test('jobs: job() replays saved steps, yields one new step at a time, refuses unsigned calls; jobs.start()', async () => {
+  const { job, execute, FatalJobError, parseDuration } = await import('../dist/jobs.mjs')
+  const { createHmac } = await import('node:crypto')
+  const ran = []
+  const handler = async (p, ctx) => {
+    const a = await ctx.step('a', () => { ran.push('a'); return p.n + 1 })
+    await ctx.sleep('nap', '1h')
+    const b = await ctx.step('b', () => { ran.push('b'); return a * 2 })
+    return { b }
+  }
+  const run = { id: 'r1', job: 'j', attempt: 1, created_at: '' }
+  assert.deepEqual(await execute(handler, run, { n: 1 }, {}), { op: 'step', name: 'a', output: 2 })
+  const nap = await execute(handler, run, { n: 1 }, { a: { output: 2 } })
+  assert.equal(nap.op, 'sleep'); assert.ok(Math.abs(new Date(nap.until) - Date.now() - 3600e3) < 5000)
+  assert.deepEqual(await execute(handler, run, { n: 1 }, { a: { output: 2 }, nap: { output: null } }), { op: 'step', name: 'b', output: 4 })
+  assert.deepEqual(await execute(handler, run, { n: 1 }, { a: { output: 2 }, nap: { output: null }, b: { output: 4 } }), { op: 'done', result: { b: 4 } })
+  assert.deepEqual(ran, ['a', 'b'])
+  const err = await execute(async (p, ctx) => ctx.step('x', () => { throw new FatalJobError('no') }), run, {}, {})
+  assert.deepEqual(err, { op: 'error', name: 'x', message: 'no', retry: false })
+  assert.equal(parseDuration('15m'), 900e3)
+
+  const SK = jwt({ role: 'service_role' }), fn = job(handler, { serviceKey: SK })
+  assert.equal((await fn(new Request('http://x/', { method: 'POST', body: '{}' }))).status, 401)
+  const body = JSON.stringify({ run, payload: { n: 1 }, steps: {} }), t = Math.floor(Date.now() / 1000)
+  const sig = `t=${t},v1=${createHmac('sha256', SK).update(`${t}.${body}`).digest('hex')}`
+  const res = await fn(new Request('http://x/', { method: 'POST', body, headers: { 'x-stitchdb-job': sig } }))
+  assert.deepEqual(await res.json(), { op: 'step', name: 'a', output: 2 })
+
+  const calls = []
+  const c = createClient(URL_, SK, { auth: { persistSession: false }, global: { fetch: async (url, opts) => { calls.push({ url: String(url), opts }); return new Response(JSON.stringify({ id: 'r9', status: 'queued', duplicate: false }), { status: 201 }) } } })
+  const { data, error } = await c.jobs.start('onboarding', { user_id: 'u' }, { idempotencyKey: 'k1', delay: 5 })
+  assert.equal(error, null); assert.equal(data.id, 'r9')
+  assert.equal(calls[0].url, `${URL_}/jobs/v1/runs`)
+  assert.deepEqual(JSON.parse(calls[0].opts.body), { job: 'onboarding', payload: { user_id: 'u' }, idempotency_key: 'k1', delay: 5 })
+})

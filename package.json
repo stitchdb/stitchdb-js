@@ -46,6 +46,11 @@
       "import": "./dist/tracing.mjs",
       "require": "./dist/tracing.cjs"
     },
+    "./jobs": {
+      "types": "./dist/types/jobs.d.ts",
+      "import": "./dist/jobs.mjs",
+      "require": "./dist/jobs.cjs"
+    },
     "./package.json": "./package.json"
   },
   "files": [

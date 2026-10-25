@@ -3,6 +3,7 @@ import { FunctionsClient } from './functions/index'
 import { PushClient } from './push'
 import { search, type SearchOptions, type SearchResponse } from './search'
 import { OfflineClient, type OfflineOptions } from './offline'
+import { JobsClient } from './jobs'
 import { PurchasesClient } from './purchases'
 import { OrgsClient } from './orgs'
 import { withHistory } from './realtime-history'
@@ -98,6 +99,7 @@ export default class StitchClient<
   protected functionsUrl: URL
   protected pushUrl: URL
   protected purchasesUrl: URL
+  protected jobsUrl: URL
   protected historyUrl: URL
   protected searchUrl: URL
   protected syncUrl: URL
@@ -341,6 +343,7 @@ export default class StitchClient<
     this.functionsUrl = new URL('functions/v1', baseUrl)
     this.pushUrl = new URL('push/v1', baseUrl)
     this.purchasesUrl = new URL('purchases/v1', baseUrl)
+    this.jobsUrl = new URL('jobs/v1', baseUrl)
     this.historyUrl = new URL('history/v1', baseUrl)
     this.searchUrl = new URL('search/v1', baseUrl)
     this.syncUrl = new URL('sync/v1', baseUrl)
@@ -488,6 +491,18 @@ export default class StitchClient<
    */
   offline(options: OfflineOptions = {}): OfflineClient {
     return new OfflineClient(this.syncUrl.href, this.fetch!, options, `stitchdb-offline-${this.syncUrl.hostname.split('.')[0]}`)
+  }
+
+  /**
+   * Durable background jobs (Edge Functions written with `job()` from `stitchdb-js/jobs`): start runs, read their
+   * steps, cancel and retry. Use a client made with the service key, on your server or in an Edge Function.
+   *
+   * ```js
+   * const { data } = await admin.jobs.start('onboarding', { user_id }, { idempotencyKey: `onboarding:${user_id}` })
+   * ```
+   */
+  get jobs(): JobsClient {
+    return new JobsClient(this.jobsUrl.href, this.fetch!)
   }
 
   /**
