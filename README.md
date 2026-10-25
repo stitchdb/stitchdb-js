@@ -198,6 +198,25 @@ db.close()
 
 Queries run as the project's owner, the same as the connection string. Keep the key on the server and never put it in a browser or an app. Values that would lose precision in JavaScript come back as strings: `int8`, `numeric`, dates and times. Without a bundler, import `https://stitchdb.com/sdk/stitchdb-sql.mjs`.
 
+## Collaborative documents
+
+Documents many people edit at once (text, whiteboards, forms) with live cursors, offline edits and history. Bring
+[Yjs](https://docs.yjs.dev) and any editor binding for it; turn it on in Studio › Database › Collaborative docs.
+
+```js
+import * as Y from 'yjs'
+const collab = stitchdb.collab({ Y })
+const ydoc = new Y.Doc()
+const room = await collab.open('plan-2026', ydoc, { create: { title: 'Plan 2026' } })
+room.setPresence({ name: 'Ann', cursor: 4 })
+room.on('presence', (peers) => drawCursors(peers))
+await collab.share('plan-2026', bobId, 'editor')
+const old = await room.loadSnapshot((await room.snapshots())[0].id)
+```
+
+Who may open and edit a document is row level security on `collab.documents`. Guide:
+https://stitchdb.com/docs/realtime/collaborative-documents
+
 ## Server middleware
 
 `stitchdb-js/middleware` builds fetch handlers (Edge Functions, Deno, Bun, Cloudflare Workers, Vercel, Node) from

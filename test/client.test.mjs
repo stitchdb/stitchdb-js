@@ -341,3 +341,33 @@ test('sql: tagged queries, fragments, identifiers, connection URL, transactions,
   await s2`select 1`
   assert.equal(calls.at(-1).url, 'https://abcd.stitchdb.com/sql/v1/query')
 })
+
+test('collab: needs the yjs module, connects to /collab/v1/ws, syncs a document over the protocol', async () => {
+  const { createClient } = await import('../dist/index.mjs')
+  const c = createClient('https://abcd.stitchdb.com', 'eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiJ9.x')
+  assert.throws(() => c.collab({}), /pass the yjs module/)
+  const sent = []
+  let sock
+  class FakeWS { constructor(url) { this.url = url; sock = this; setTimeout(() => this.onopen(), 0) } send(m) { sent.push(JSON.parse(m)); const x = JSON.parse(m)
+      if (x.t === 'auth') this.onmessage({ data: JSON.stringify({ t: 'ready', client: 'me' }) })
+      if (x.t === 'join') this.onmessage({ data: JSON.stringify({ t: 'joined', doc: x.doc, write: true, seq: 3, count: 3, updates: ['AQID'], peers: [{ client: 'p2', state: { name: 'Bob' } }] }) })
+      if (x.t === 'update') this.onmessage({ data: JSON.stringify({ t: 'ack', doc: x.doc, id: x.id, seq: 4 }) }) }
+    close() {} }
+  const applied = []
+  const handlers = []
+  const doc = { on: (e, f) => handlers.push(f), off: () => {} }
+  const Y = { Doc: class {}, applyUpdate: (d, u, origin) => applied.push([...u]), encodeStateAsUpdate: () => new Uint8Array([9]), mergeUpdates: (us) => us[0] }
+  const collab = c.collab({ Y, WebSocket: FakeWS })
+  const room = await collab.open('doc-1', doc, { create: true })
+  assert.equal(sock.url, 'wss://abcd.stitchdb.com/collab/v1/ws')
+  assert.deepEqual(sent[0].t, 'auth')
+  assert.deepEqual(sent[1], { t: 'join', doc: 'doc-1', since: 0, create: {} })
+  assert.deepEqual(applied, [[1, 2, 3]])
+  assert.equal(room.write, true); assert.equal(room.seq, 3); assert.deepEqual([...room.peers.values()], [{ name: 'Bob' }])
+  handlers[0](new Uint8Array([7, 7]), 'local')
+  assert.deepEqual(sent.at(-1), { t: 'update', doc: 'doc-1', data: 'Bwc=', id: 1 })
+  assert.equal(room.unsaved, 0); assert.equal(room.seq, 4)
+  room.setPresence({ cursor: 2 })
+  assert.deepEqual(sent.at(-1), { t: 'presence', doc: 'doc-1', state: { cursor: 2 } })
+  collab.close()
+})

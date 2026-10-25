@@ -3,6 +3,7 @@ import { FunctionsClient } from './functions/index'
 import { PushClient } from './push'
 import { search, type SearchOptions, type SearchResponse } from './search'
 import { OfflineClient, type OfflineOptions } from './offline'
+import { CollabClient, type CollabOptions } from './collab'
 import { JobsClient } from './jobs'
 import { PurchasesClient } from './purchases'
 import { OrgsClient } from './orgs'
@@ -103,6 +104,7 @@ export default class StitchClient<
   protected historyUrl: URL
   protected searchUrl: URL
   protected syncUrl: URL
+  protected collabUrl: URL
   protected rest: PostgrestClient<Database, ClientOptions, SchemaName>
   protected storageKey: string
   protected fetch?: Fetch
@@ -347,6 +349,7 @@ export default class StitchClient<
     this.historyUrl = new URL('history/v1', baseUrl)
     this.searchUrl = new URL('search/v1', baseUrl)
     this.syncUrl = new URL('sync/v1', baseUrl)
+    this.collabUrl = new URL('collab/v1', baseUrl)
 
     // default storage key uses the project ref as a namespace
     const projectRef = baseUrl.hostname.split('.')[0]
@@ -491,6 +494,21 @@ export default class StitchClient<
    */
   offline(options: OfflineOptions = {}): OfflineClient {
     return new OfflineClient(this.syncUrl.href, this.fetch!, options, `stitchdb-offline-${this.syncUrl.hostname.split('.')[0]}`)
+  }
+
+  /**
+   * Collaborative documents: keep a Yjs document in sync between everyone editing it, stored in the project with
+   * history (Studio › Realtime › Collaborative docs). Pass the yjs module; one connection serves every open document.
+   *
+   * @example
+   * import * as Y from 'yjs'
+   * const collab = stitchdb.collab({ Y })
+   * const room = await collab.open('plan-2026', ydoc, { create: { title: 'Plan 2026' } })
+   */
+  collab(options: CollabOptions): CollabClient {
+    const ws = new URL(this.collabUrl.href + '/ws')
+    ws.protocol = ws.protocol.replace('http', 'ws')
+    return new CollabClient(ws.href, this.collabUrl.href, this.stitchKey, () => this._getAccessToken(), this.fetch!, options)
   }
 
   /**
