@@ -252,6 +252,17 @@ stitchdb.analytics.track('purchase', { plan: 'pro', amount: 29 })
 await stitchdb.analytics.optOut() // the user does not want to be tracked
 ```
 
+### Deep links
+
+Short links (`https://<project>/l/<code>` or your own domain) open your app on the right screen when it is installed (iOS Universal Links, Android App Links) and otherwise go to the App Store, Google Play or a web page. Set up your apps in Studio › Links.
+
+```js
+const { data: link } = await stitchdb.links.resolve(url)          // the URL the app was opened with
+if (link) navigate(link.path, link.data)
+const { data: first } = await stitchdb.links.deferred({ platform: 'ios' }) // first launch after an install, best effort
+const { data: made } = await stitchdb.links.create({ path: '/invite/7', data: { from: 'ana' } })
+```
+
 ## Serverless SQL (edge runtimes)
 
 `stitchdb-js/sql` sends Postgres queries over HTTPS and WebSocket, so it works in Cloudflare Workers, Vercel Edge, Deno Deploy and other runtimes that can't open TCP connections. Turn it on and create a SQL key in Studio › Database › Serverless SQL. The connection URL looks like `https://sdb_sql_...@<ref>.stitchdb.com`.

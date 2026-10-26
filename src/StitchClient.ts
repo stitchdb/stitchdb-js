@@ -9,6 +9,7 @@ import { FlagsClient } from './flags'
 import { MeteringClient } from './metering'
 import { CrashesClient, recordingFetch } from './crashes'
 import { AnalyticsClient } from './analytics'
+import { LinksClient } from './links'
 import { PurchasesClient } from './purchases'
 import { OrgsClient } from './orgs'
 import { withHistory } from './realtime-history'
@@ -110,6 +111,7 @@ export default class StitchClient<
   protected crashesUrl: URL
   private _crashes?: CrashesClient
   protected analyticsUrl: URL
+  protected linksUrl: URL
   private _analytics?: AnalyticsClient
   private _flags?: FlagsClient
   protected historyUrl: URL
@@ -361,6 +363,7 @@ export default class StitchClient<
     this.meteringUrl = new URL('metering/v1', baseUrl)
     this.crashesUrl = new URL('crashes/v1', baseUrl)
     this.analyticsUrl = new URL('analytics/v1', baseUrl)
+    this.linksUrl = new URL('links/v1', baseUrl)
     this.historyUrl = new URL('history/v1', baseUrl)
     this.searchUrl = new URL('search/v1', baseUrl)
     this.syncUrl = new URL('sync/v1', baseUrl)
@@ -549,6 +552,17 @@ export default class StitchClient<
    */
   get metering(): MeteringClient {
     return new MeteringClient(this.meteringUrl.href, this.fetch!)
+  }
+
+  /**
+   * Deep links and short links (Studio › Links): resolve the link the app was opened with, the link that led to an
+   * install, and make links to share.
+   * @example
+   * const { data: link } = await stitchdb.links.resolve(url)
+   * if (link) navigate(link.path, link.data)
+   */
+  get links(): LinksClient {
+    return new LinksClient(this.linksUrl.href, this.fetch!)
   }
 
   /**

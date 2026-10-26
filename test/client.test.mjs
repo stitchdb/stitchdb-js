@@ -423,6 +423,42 @@ test('metering: record, recordMany, usage, customers, exportCsv', async () => {
   assert.match(csv.data, /^customer,meter,period,value/); assert.match(calls[5].url, /\/export\?group=day&format=csv$/)
 })
 
+test('links: resolve, deferred, create, list, get, update, remove', async () => {
+  const link = { code: 'aB3kP9x', url: 'https://go.shop.test/l/aB3kP9x', path: '/product/42', data: { promo: 'SPRING' } }
+  const { fetch, calls } = mockFetch((c) => {
+    if (c.url.includes('/resolve/old')) return [410, { message: 'This link has expired', code: 'old' }]
+    if (c.url.includes('/resolve/')) return [200, link]
+    if (c.url.endsWith('/deferred')) return [200, { match: JSON.parse(c.body).platform === 'ios' ? { ...link, matched_by: 'network' } : null }]
+    if (c.url.endsWith('/links') && c.method === 'POST') return [201, { ...link, ...JSON.parse(c.body) }]
+    return [200, { links: [], total: 0 }]
+  })
+  const c = createClient(URL_, KEY, { auth: { persistSession: false }, global: { fetch } })
+  const { LinksClient } = await import('../dist/index.mjs')
+  assert.equal(LinksClient.codeFrom('https://go.shop.test/l/aB3kP9x?utm=1'), 'aB3kP9x')
+  assert.equal(LinksClient.codeFrom('https://go.shop.test/l/aB3kP9x/'), 'aB3kP9x')
+  assert.equal(LinksClient.codeFrom('https://go.shop.test/product/42'), null)
+  assert.equal(LinksClient.codeFrom('summer'), 'summer')
+  let r = await c.links.resolve('https://go.shop.test/l/aB3kP9x', { platform: 'ios' })
+  assert.deepEqual(r, { data: link, error: null })
+  assert.equal(calls[0].url, `${URL_}/links/v1/resolve/aB3kP9x?platform=ios`)
+  assert.equal(calls[0].headers.get('apikey'), KEY)
+  r = await c.links.resolve('https://shop.test/about')
+  assert.deepEqual(r, { data: null, error: null }); assert.equal(calls.length, 1, 'not a short link: no request')
+  r = await c.links.resolve('old')
+  assert.equal(r.error.status, 410)
+  r = await c.links.deferred({ platform: 'ios' })
+  assert.equal(r.data.matched_by, 'network')
+  r = await c.links.deferred({ platform: 'android', referrer: 'stitch_link=x' })
+  assert.equal(r.data, null); assert.deepEqual(JSON.parse(calls.at(-1).body), { platform: 'android', referrer: 'stitch_link=x' })
+  r = await c.links.create({ path: '/invite/7', data: { from: 'ana' }, expires_at: new Date('2026-12-01T00:00:00Z') })
+  assert.equal(r.data.path, '/invite/7'); assert.equal(JSON.parse(calls.at(-1).body).expires_at, '2026-12-01T00:00:00.000Z')
+  await c.links.list({ search: 'spring', limit: 5 })
+  assert.equal(calls.at(-1).url, `${URL_}/links/v1/links?q=spring&limit=5`)
+  await c.links.get('summer', { days: 7 }); assert.equal(calls.at(-1).url, `${URL_}/links/v1/links/summer?days=7`)
+  await c.links.update('summer', { disabled: true }); assert.equal(calls.at(-1).method, 'PATCH')
+  await c.links.remove('summer'); assert.equal(calls.at(-1).method, 'DELETE')
+})
+
 test('auth.signInWithHostedPage: the page URL, PKCE code exchanged with the page', async () => {
   const { fetch, calls } = mockFetch((c) => c.url.endsWith('/login/v1/token')
     ? [200, { access_token: jwt({ sub: 'u1', role: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 }), refresh_token: 'r1', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: 'u1', email: 'a@b.c' } }]
