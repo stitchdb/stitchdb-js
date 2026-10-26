@@ -682,3 +682,30 @@ export function insecureUserWarningProxy(user: User, suppressWarningRef: { value
 export function deepClone<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj))
 }
+
+/**
+ * Solves the project's built-in sign-up check (SHA-256 proof of work): finds `number` so that
+ * SHA-256(salt + number) is the challenge, and returns the answer to send as `stitchdb_captcha`.
+ */
+export async function solveSignupCheck(ch: {
+  algorithm?: string
+  challenge?: string
+  salt?: string
+  maxnumber?: number
+  signature?: string
+}): Promise<string | null> {
+  const subtle = globalThis.crypto?.subtle
+  if (!subtle || !ch || typeof ch.salt !== 'string' || typeof ch.challenge !== 'string') return null
+  const enc = new TextEncoder()
+  const max = Math.min(Number(ch.maxnumber) || 0, 1000000)
+  for (let n = 0; n <= max; n++) {
+    const d = new Uint8Array(await subtle.digest('SHA-256', enc.encode(ch.salt + n)))
+    let hex = ''
+    for (let i = 0; i < d.length; i++) hex += d[i].toString(16).padStart(2, '0')
+    if (hex === ch.challenge) {
+      const answer = JSON.stringify({ ...ch, number: n })
+      return typeof btoa === 'function' ? btoa(answer) : Buffer.from(answer).toString('base64')
+    }
+  }
+  return null
+}

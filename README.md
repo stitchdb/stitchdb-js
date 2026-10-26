@@ -57,6 +57,8 @@ await stitchdb.auth.signInWithHostedPage({ redirectTo: 'https://yourapp.com/auth
 
 In the browser, `signUp` and `signInWithOtp` store the browser language as `locale` in the user's metadata (unless you pass `locale`, `language` or `lang` yourself), so a project with several e-mail languages sends each user their confirmation and sign-in e-mails in their language.
 
+When the project's fake sign-up protection asks for its built-in check (`captcha_required`), `signUp` and `signInWithOtp` solve it (a short proof of work) and send the request again; you do not need to handle it.
+
 Also available: phone and SMS OTP, SAML SSO, Web3 (Ethereum and Solana) sign-in, passkeys, identity linking and the admin API (with the service_role key).
 
 ### Storage

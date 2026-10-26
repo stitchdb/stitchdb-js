@@ -465,3 +465,28 @@ test('sign-up sends the browser language as locale for e-mails in the user langu
   assert.deepEqual(bodies[1].data, { language: 'fr', plan: 'x' })
   assert.deepEqual(bodies[2].data, { locale: 'de-DE' })
 })
+
+test('sign-up solves the project sign-up check when asked and sends the request again', async () => {
+  const { createHash } = await import('node:crypto')
+  const salt = 'abc?expires=9999999999&', n = 77
+  const challenge = { algorithm: 'SHA-256', challenge: createHash('sha256').update(salt + n).digest('hex'), maxnumber: 200, salt, signature: 'sig' }
+  const calls = []
+  const fetch = async (url, opts) => {
+    calls.push({ url: String(url), method: opts.method, body: opts.body ? JSON.parse(opts.body) : null })
+    if (String(url).endsWith('/challenge')) return new Response(JSON.stringify(challenge), { status: 200 })
+    if (calls.filter((c) => c.method === 'POST').length === 1) return new Response(JSON.stringify({ code: 400, error_code: 'captcha_required', msg: 'Complete the sign-up check' }), { status: 400 })
+    return new Response(JSON.stringify({ id: 'u1', email: 'a@b.c' }), { status: 200 })
+  }
+  const c = createClient(URL_, KEY, { global: { fetch }, auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } })
+  const { error } = await c.auth.signUp({ email: 'a@b.c', password: 'secret-pass' })
+  assert.equal(error, null)
+  assert.deepEqual(calls.map((x) => [x.method, x.url.split('/auth/v1')[1].split('?')[0]]), [['POST', '/signup'], ['GET', '/challenge'], ['POST', '/signup']])
+  const answer = JSON.parse(Buffer.from(calls[2].body.stitchdb_captcha, 'base64').toString())
+  assert.equal(answer.number, n); assert.equal(answer.signature, 'sig')
+  // other errors are not retried
+  calls.length = 0
+  const f2 = async (url, opts) => { calls.push(String(url)); return new Response(JSON.stringify({ code: 400, error_code: 'email_address_invalid', msg: 'no' }), { status: 400 }) }
+  const c2 = createClient(URL_, KEY, { global: { fetch: f2 }, auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } })
+  const r2 = await c2.auth.signInWithOtp({ email: 'a@mailinator.com' })
+  assert.equal(r2.error?.code, 'email_address_invalid'); assert.equal(calls.length, 1)
+})

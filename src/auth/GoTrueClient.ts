@@ -50,6 +50,7 @@ import {
   insecureUserWarningProxy,
   isBrowser,
   withLocale,
+  solveSignupCheck,
   parseParametersFromURL,
   pkceVerifierSlotKey,
   removeAllPKCEVerifiers,
@@ -857,6 +858,22 @@ export default class GoTrueClient {
   }
 
   /**
+   * Fake sign-up protection: when the project asks for its built-in check (`captcha_required`), solve it (a
+   * proof of work, a fraction of a second) and send the request once more.
+   */
+  private async _withSignupCheck<T>(send: (check: { stitchdb_captcha?: string }) => Promise<T>): Promise<T> {
+    try {
+      return await send({})
+    } catch (error) {
+      if (!isAuthApiError(error) || error.code !== 'captcha_required') throw error
+      const { data } = await _request(this.fetch, 'GET', `${this.url}/challenge`, { headers: this.headers })
+      const token = await solveSignupCheck(data as any)
+      if (!token) throw error
+      return await send({ stitchdb_captcha: token })
+    }
+  }
+
+  /**
    * Creates a new user.
    *
    * Be aware that if a user account exists in the system you may get back an
@@ -1044,10 +1061,12 @@ export default class GoTrueClient {
         if (this.flowType === 'pkce') {
           ;[codeChallenge, codeChallengeMethod, flowId] = await this._getCodeChallengeAndMethod()
         }
-        res = await _request(this.fetch, 'POST', `${this.url}/signup`, {
+        const redirectTo = this._maybeAppendFlowIdToRedirect(options?.emailRedirectTo, flowId)
+        res = await this._withSignupCheck((check) => _request(this.fetch, 'POST', `${this.url}/signup`, {
           headers: this.headers,
-          redirectTo: this._maybeAppendFlowIdToRedirect(options?.emailRedirectTo, flowId),
+          redirectTo,
           body: {
+            ...check,
             email,
             password,
             data: withLocale(options?.data),
@@ -1056,12 +1075,13 @@ export default class GoTrueClient {
             code_challenge_method: codeChallengeMethod,
           },
           xform: _sessionResponse,
-        })
+        }))
       } else if ('phone' in credentials) {
         const { phone, password, options } = credentials
-        res = await _request(this.fetch, 'POST', `${this.url}/signup`, {
+        res = await this._withSignupCheck((check) => _request(this.fetch, 'POST', `${this.url}/signup`, {
           headers: this.headers,
           body: {
+            ...check,
             phone,
             password,
             data: withLocale(options?.data),
@@ -1069,7 +1089,7 @@ export default class GoTrueClient {
             gotrue_meta_security: { captcha_token: options?.captchaToken },
           },
           xform: _sessionResponse,
-        })
+        }))
       } else {
         throw new AuthInvalidCredentialsError(
           'You must provide either an email or phone number and a password'
@@ -2351,9 +2371,11 @@ export default class GoTrueClient {
         if (this.flowType === 'pkce') {
           ;[codeChallenge, codeChallengeMethod, flowId] = await this._getCodeChallengeAndMethod()
         }
-        const { error } = await _request(this.fetch, 'POST', `${this.url}/otp`, {
+        const redirectTo = this._maybeAppendFlowIdToRedirect(options?.emailRedirectTo, flowId)
+        const { error } = await this._withSignupCheck((check) => _request(this.fetch, 'POST', `${this.url}/otp`, {
           headers: this.headers,
           body: {
+            ...check,
             email,
             data: withLocale(options?.data),
             create_user: options?.shouldCreateUser ?? true,
@@ -2361,22 +2383,23 @@ export default class GoTrueClient {
             code_challenge: codeChallenge,
             code_challenge_method: codeChallengeMethod,
           },
-          redirectTo: this._maybeAppendFlowIdToRedirect(options?.emailRedirectTo, flowId),
-        })
+          redirectTo,
+        }))
         return this._returnResult({ data: { user: null, session: null }, error })
       }
       if ('phone' in credentials) {
         const { phone, options } = credentials
-        const { data, error } = await _request(this.fetch, 'POST', `${this.url}/otp`, {
+        const { data, error } = await this._withSignupCheck((check) => _request(this.fetch, 'POST', `${this.url}/otp`, {
           headers: this.headers,
           body: {
+            ...check,
             phone,
             data: withLocale(options?.data),
             create_user: options?.shouldCreateUser ?? true,
             gotrue_meta_security: { captcha_token: options?.captchaToken },
             channel: options?.channel ?? 'sms',
           },
-        })
+        }))
         return this._returnResult({
           data: { user: null, session: null, messageId: data?.message_id },
           error,
