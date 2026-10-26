@@ -49,6 +49,7 @@ import {
   getItemAsync,
   insecureUserWarningProxy,
   isBrowser,
+  withLocale,
   parseParametersFromURL,
   pkceVerifierSlotKey,
   removeAllPKCEVerifiers,
@@ -1049,7 +1050,7 @@ export default class GoTrueClient {
           body: {
             email,
             password,
-            data: options?.data ?? {},
+            data: withLocale(options?.data),
             gotrue_meta_security: { captcha_token: options?.captchaToken },
             code_challenge: codeChallenge,
             code_challenge_method: codeChallengeMethod,
@@ -1063,7 +1064,7 @@ export default class GoTrueClient {
           body: {
             phone,
             password,
-            data: options?.data ?? {},
+            data: withLocale(options?.data),
             channel: options?.channel ?? 'sms',
             gotrue_meta_security: { captcha_token: options?.captchaToken },
           },
@@ -2354,7 +2355,7 @@ export default class GoTrueClient {
           headers: this.headers,
           body: {
             email,
-            data: options?.data ?? {},
+            data: withLocale(options?.data),
             create_user: options?.shouldCreateUser ?? true,
             gotrue_meta_security: { captcha_token: options?.captchaToken },
             code_challenge: codeChallenge,
@@ -2370,7 +2371,7 @@ export default class GoTrueClient {
           headers: this.headers,
           body: {
             phone,
-            data: options?.data ?? {},
+            data: withLocale(options?.data),
             create_user: options?.shouldCreateUser ?? true,
             gotrue_meta_security: { captcha_token: options?.captchaToken },
             channel: options?.channel ?? 'sms',

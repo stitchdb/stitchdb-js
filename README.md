@@ -55,6 +55,8 @@ No auth screens of your own: turn on **Authentication › Hosted sign-in** in St
 await stitchdb.auth.signInWithHostedPage({ redirectTo: 'https://yourapp.com/auth/callback', view: 'sign-up' })
 ```
 
+In the browser, `signUp` and `signInWithOtp` store the browser language as `locale` in the user's metadata (unless you pass `locale`, `language` or `lang` yourself), so a project with several e-mail languages sends each user their confirmation and sign-in e-mails in their language.
+
 Also available: phone and SMS OTP, SAML SSO, Web3 (Ethereum and Solana) sign-in, passkeys, identity linking and the admin API (with the service_role key).
 
 ### Storage

@@ -443,3 +443,25 @@ test('auth.signInWithHostedPage: the page URL, PKCE code exchanged with the page
   const body = JSON.parse(call.body)
   assert.equal(body.code, 'sdbl_' + 'a'.repeat(43)); assert.match(body.code_verifier, /^[\w-]{43,128}$/)
 })
+
+test('sign-up sends the browser language as locale for e-mails in the user language', async () => {
+  const bodies = []
+  const fetch = async (url, opts) => { bodies.push(JSON.parse(opts.body)); return new Response(JSON.stringify({ id: 'u1', email: 'a@b.c' }), { status: 200 }) }
+  const had = { window: globalThis.window, document: globalThis.document }
+  globalThis.window = globalThis.window || {}; globalThis.document = globalThis.document || {}
+  const nav = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+  Object.defineProperty(globalThis, 'navigator', { value: { language: 'de-DE' }, configurable: true })
+  try {
+    const c = createClient(URL_, KEY, { global: { fetch }, auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } })
+    await c.auth.signUp({ email: 'a@b.c', password: 'secret-pass' })
+    await c.auth.signUp({ email: 'a@b.c', password: 'secret-pass', options: { data: { language: 'fr', plan: 'x' } } })
+    await c.auth.signInWithOtp({ email: 'a@b.c' })
+  } finally {
+    if (nav) Object.defineProperty(globalThis, 'navigator', nav); else delete globalThis.navigator
+    if (had.window === undefined) delete globalThis.window
+    if (had.document === undefined) delete globalThis.document
+  }
+  assert.deepEqual(bodies[0].data, { locale: 'de-DE' })
+  assert.deepEqual(bodies[1].data, { language: 'fr', plan: 'x' })
+  assert.deepEqual(bodies[2].data, { locale: 'de-DE' })
+})

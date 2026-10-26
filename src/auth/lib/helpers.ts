@@ -33,6 +33,20 @@ export function generateCallbackId(): symbol {
 
 export const isBrowser = () => typeof window !== 'undefined' && typeof document !== 'undefined'
 
+/**
+ * Adds the browser's language as `locale` to sign-up metadata, so the project's auth e-mails can be sent in the
+ * user's language. Metadata that already has `locale`, `language` or `lang` is left as it is; outside a browser
+ * nothing is added.
+ */
+export function withLocale(data?: object): object {
+  const d: { [key: string]: any } = { ...(data || {}) }
+  if (d.locale == null && d.language == null && d.lang == null && isBrowser()) {
+    const l = typeof navigator !== 'undefined' ? navigator.language : undefined
+    if (typeof l === 'string' && /^[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,8})*$/.test(l)) d.locale = l
+  }
+  return d
+}
+
 const localStorageWriteTests = {
   tested: false,
   writable: false,
