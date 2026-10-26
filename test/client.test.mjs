@@ -527,3 +527,35 @@ test('crashes: reports with API breadcrumbs, beforeSend, off for the project sto
   assert.equal(calls.filter((x) => x.url.endsWith('/crashes/v1/report')).length, 2, 'after a 404 the client stops sending')
   c.crashes.stop()
 })
+
+test('analytics: queued before start, batched with the anonymous id, opt-out, off for the project stops sending', async () => {
+  let off = false
+  const { fetch, calls } = mockFetch((c) => {
+    if (c.url.includes('/analytics/v1/')) return off ? [404, { message: 'analytics is not set up for this project' }] : [200, { received: 1 }]
+    return [200, []]
+  })
+  const c = createClient(URL_, KEY, { auth: { persistSession: false }, global: { fetch } })
+  c.analytics.track('app_open')
+  c.analytics.track('bad name!')
+  assert.equal(calls.length, 0, 'nothing sent before start()')
+  c.analytics.start({ release: '2.0.0', flushIntervalMs: 60000, beforeSend: (e) => (e.props.secret ? null : e) })
+  c.analytics.track('purchase', { plan: 'pro' })
+  c.analytics.track('dropped', { secret: 1 })
+  await c.analytics.flush()
+  const sent = calls.filter((x) => x.url.endsWith('/analytics/v1/track'))
+  assert.ok(sent.length >= 1)
+  const all = sent.flatMap((x) => JSON.parse(x.body).events.map((e) => e.name))
+  assert.deepEqual(all, ['app_open', 'purchase'], 'early events kept, invalid and beforeSend-null dropped')
+  const b = JSON.parse(sent[0].body)
+  assert.equal(b.anon_id, c.analytics.anonymousId); assert.equal(b.release, '2.0.0'); assert.equal(b.platform, 'node')
+  await c.analytics.optOut()
+  assert.ok(calls.some((x) => x.url.endsWith('/analytics/v1/opt-out') && x.method === 'POST'))
+  c.analytics.track('after_optout'); await c.analytics.flush()
+  assert.equal(calls.filter((x) => x.url.endsWith('/analytics/v1/track')).length, sent.length, 'opted out: nothing sent')
+  await c.analytics.optIn()
+  off = true
+  c.analytics.track('a'); await c.analytics.flush()
+  c.analytics.track('b'); await c.analytics.flush()
+  assert.equal(calls.filter((x) => x.url.endsWith('/analytics/v1/track')).length, sent.length + 1, 'after a 404 the client stops sending')
+  c.analytics.stop()
+})

@@ -38,6 +38,8 @@ export type { FlagValue, FlagAttributes, FlagsLoadOptions, FlagUser } from './fl
 export { MeteringClient, MeteringError } from './metering'
 export { CrashesClient } from './crashes'
 export type { CrashesOptions, CrashReport, Breadcrumb } from './crashes'
+export { AnalyticsClient } from './analytics'
+export type { AnalyticsOptions, AnalyticsEvent } from './analytics'
 export type { MeterEvent, UsageRow, UsageQuery, UsageResult, CustomerTotals } from './metering'
 export type { JobRunInfo, JobStatus, StartOptions, JobLogLine } from './jobs'
 export type { SearchOptions, SearchResponse, SearchScore } from './search'

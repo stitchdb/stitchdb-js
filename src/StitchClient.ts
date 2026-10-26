@@ -8,6 +8,7 @@ import { JobsClient } from './jobs'
 import { FlagsClient } from './flags'
 import { MeteringClient } from './metering'
 import { CrashesClient, recordingFetch } from './crashes'
+import { AnalyticsClient } from './analytics'
 import { PurchasesClient } from './purchases'
 import { OrgsClient } from './orgs'
 import { withHistory } from './realtime-history'
@@ -108,6 +109,8 @@ export default class StitchClient<
   protected meteringUrl: URL
   protected crashesUrl: URL
   private _crashes?: CrashesClient
+  protected analyticsUrl: URL
+  private _analytics?: AnalyticsClient
   private _flags?: FlagsClient
   protected historyUrl: URL
   protected searchUrl: URL
@@ -357,6 +360,7 @@ export default class StitchClient<
     this.flagsUrl = new URL('flags/v1', baseUrl)
     this.meteringUrl = new URL('metering/v1', baseUrl)
     this.crashesUrl = new URL('crashes/v1', baseUrl)
+    this.analyticsUrl = new URL('analytics/v1', baseUrl)
     this.historyUrl = new URL('history/v1', baseUrl)
     this.searchUrl = new URL('search/v1', baseUrl)
     this.syncUrl = new URL('sync/v1', baseUrl)
@@ -548,15 +552,6 @@ export default class StitchClient<
   }
 
   /**
-   * Feature flags and remote config (Studio › Integrations › Feature flags): values for the signed-in user, kept
-   * between starts and refreshed on sign-in, sign-out and every minute. One client per StitchDB client.
-   *
-   * ```js
-   * await stitchdb.flags.load({ attributes: { app_version: '2.4.1' } })
-   * if (stitchdb.flags.get('new-checkout', false)) showNewCheckout()
-   * ```
-   */
-  /**
    * Crash and error reporting (Studio › Crashes): uncaught errors and the ones you report, with the user's last
    * actions and API calls.
    *
@@ -568,6 +563,30 @@ export default class StitchClient<
     return (this._crashes ||= new CrashesClient(this.crashesUrl.href, this.fetch!, `stitchdb-${this.crashesUrl.hostname.split('.')[0]}-crashes`))
   }
 
+  /**
+   * Product analytics (Studio › Analytics): events linked to the signed-in user, for active users, funnels, retention
+   * and breakdowns.
+   *
+   * @example
+   * stitchdb.analytics.start({ release: '1.4.0' })
+   * stitchdb.analytics.track('purchase', { plan: 'pro' })
+   */
+  get analytics(): AnalyticsClient {
+    return (this._analytics ||= new AnalyticsClient(this.analyticsUrl.href, this.fetch!, `stitchdb-${this.analyticsUrl.hostname.split('.')[0]}-analytics`, (cb) => {
+      const { data } = this.auth.onAuthStateChange((event) => { if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') cb() })
+      return () => data.subscription.unsubscribe()
+    }))
+  }
+
+  /**
+   * Feature flags and remote config (Studio › Integrations › Feature flags): values for the signed-in user, kept
+   * between starts and refreshed on sign-in, sign-out and every minute. One client per StitchDB client.
+   *
+   * ```js
+   * await stitchdb.flags.load({ attributes: { app_version: '2.4.1' } })
+   * if (stitchdb.flags.get('new-checkout', false)) showNewCheckout()
+   * ```
+   */
   get flags(): FlagsClient {
     return (this._flags ||= new FlagsClient(this.flagsUrl.href, this.fetch!, `stitchdb-${this.flagsUrl.hostname.split('.')[0]}-flags`, (cb) => {
       this.auth.onAuthStateChange((event) => { if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') cb() })

@@ -242,6 +242,16 @@ stitchdb.crashes.addBreadcrumb({ type: 'ui', message: 'tap Checkout' })
 await stitchdb.crashes.flush() // before a serverless function returns
 ```
 
+### Analytics
+
+Track what users do, linked to the signed-in user (an anonymous id before sign-in, merged at sign-in): active users, funnels, retention and breakdowns in Studio › Analytics. Nothing is sent before `start()`; events are batched in the background and kept while offline.
+
+```js
+stitchdb.analytics.start({ release: '1.4.0' }) // page views on the web are tracked for you
+stitchdb.analytics.track('purchase', { plan: 'pro', amount: 29 })
+await stitchdb.analytics.optOut() // the user does not want to be tracked
+```
+
 ## Serverless SQL (edge runtimes)
 
 `stitchdb-js/sql` sends Postgres queries over HTTPS and WebSocket, so it works in Cloudflare Workers, Vercel Edge, Deno Deploy and other runtimes that can't open TCP connections. Turn it on and create a SQL key in Studio › Database › Serverless SQL. The connection URL looks like `https://sdb_sql_...@<ref>.stitchdb.com`.

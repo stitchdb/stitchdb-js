@@ -74,7 +74,7 @@ export function recordingFetch(base: Fetch): Fetch {
     const method = String(init?.method || (typeof input === 'object' && input?.method) || 'GET').toUpperCase()
     let url = ''
     try { const u = new URL(typeof input === 'string' ? input : input?.url || String(input)); url = u.pathname + (u.search ? '?' + [...u.searchParams.keys()].join('&') : '') } catch { /* not a URL */ }
-    if (url.includes('/crashes/v1/')) return base(input, init)
+    if (url.includes('/crashes/v1/') || url.includes('/analytics/v1/')) return base(input, init) // our own reporting calls
     try {
       const res = await base(input, init)
       let code: string | undefined
