@@ -7,6 +7,7 @@ import { CollabClient, type CollabOptions } from './collab'
 import { JobsClient } from './jobs'
 import { FlagsClient } from './flags'
 import { MeteringClient } from './metering'
+import { CrashesClient, recordingFetch } from './crashes'
 import { PurchasesClient } from './purchases'
 import { OrgsClient } from './orgs'
 import { withHistory } from './realtime-history'
@@ -105,6 +106,8 @@ export default class StitchClient<
   protected jobsUrl: URL
   protected flagsUrl: URL
   protected meteringUrl: URL
+  protected crashesUrl: URL
+  private _crashes?: CrashesClient
   private _flags?: FlagsClient
   protected historyUrl: URL
   protected searchUrl: URL
@@ -353,6 +356,7 @@ export default class StitchClient<
     this.jobsUrl = new URL('jobs/v1', baseUrl)
     this.flagsUrl = new URL('flags/v1', baseUrl)
     this.meteringUrl = new URL('metering/v1', baseUrl)
+    this.crashesUrl = new URL('crashes/v1', baseUrl)
     this.historyUrl = new URL('history/v1', baseUrl)
     this.searchUrl = new URL('search/v1', baseUrl)
     this.syncUrl = new URL('sync/v1', baseUrl)
@@ -370,6 +374,9 @@ export default class StitchClient<
     }
 
     const settings = applySettingDefaults(options ?? {}, DEFAULTS)
+    // API calls become breadcrumbs for crash reports (only while stitchdb.crashes is started)
+    const userFetch = settings.global.fetch
+    settings.global.fetch = recordingFetch(userFetch ? (...a: Parameters<typeof fetch>) => userFetch(...a) : (...a: Parameters<typeof fetch>) => fetch(...a))
     this.settings = settings
 
     // Sessions saved by earlier SDK versions under the previous key name are moved over on first
@@ -549,6 +556,18 @@ export default class StitchClient<
    * if (stitchdb.flags.get('new-checkout', false)) showNewCheckout()
    * ```
    */
+  /**
+   * Crash and error reporting (Studio › Crashes): uncaught errors and the ones you report, with the user's last
+   * actions and API calls.
+   *
+   * @example
+   * stitchdb.crashes.start({ release: '1.4.0' })
+   * stitchdb.crashes.captureException(error, { context: { orderId } })
+   */
+  get crashes(): CrashesClient {
+    return (this._crashes ||= new CrashesClient(this.crashesUrl.href, this.fetch!, `stitchdb-${this.crashesUrl.hostname.split('.')[0]}-crashes`))
+  }
+
   get flags(): FlagsClient {
     return (this._flags ||= new FlagsClient(this.flagsUrl.href, this.fetch!, `stitchdb-${this.flagsUrl.hostname.split('.')[0]}-flags`, (cb) => {
       this.auth.onAuthStateChange((event) => { if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') cb() })

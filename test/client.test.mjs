@@ -490,3 +490,40 @@ test('sign-up solves the project sign-up check when asked and sends the request 
   const r2 = await c2.auth.signInWithOtp({ email: 'a@mailinator.com' })
   assert.equal(r2.error?.code, 'email_address_invalid'); assert.equal(calls.length, 1)
 })
+
+test('crashes: reports with API breadcrumbs, beforeSend, off for the project stops sending', async () => {
+  let off = false
+  const { fetch, calls } = mockFetch((c) => {
+    if (c.url.includes('/crashes/v1/')) return off ? [404, { message: 'crashes is not set up for this project' }] : [200, { received: 1 }]
+    if (c.url.includes('/rest/v1/orders')) return [500, { code: 'PGRST116', message: 'boom' }]
+    return [200, []]
+  })
+  const c = createClient(URL_, KEY, { auth: { persistSession: false }, global: { fetch } })
+  await c.from('orders').select('*').eq('id', 1)
+  assert.equal(calls.length, 1, 'nothing recorded or sent before start()')
+  c.crashes.start({ release: '1.4.0', captureUnhandled: false, beforeSend: (r) => (r.context.drop ? null : r) })
+  await new Promise((r) => setTimeout(r, 20))
+  assert.ok(calls.some((x) => x.url.endsWith('/crashes/v1/session')), 'a session for crash-free users')
+  await c.from('orders').select('*').eq('id', 1)
+  c.crashes.addBreadcrumb({ type: 'ui', message: 'tapped Pay' })
+  c.crashes.captureException(new TypeError('total is undefined'), { context: { step: 'pay' } })
+  await c.crashes.flush()
+  const sent = calls.filter((x) => x.url.endsWith('/crashes/v1/report'))
+  assert.equal(sent.length, 1)
+  const [r] = JSON.parse(sent[0].body).reports
+  assert.equal(r.exception.type, 'TypeError'); assert.equal(r.release, '1.4.0'); assert.equal(r.handled, true); assert.equal(r.platform, 'node')
+  assert.match(r.exception.stack, /client\.test\.mjs/)
+  const api = r.breadcrumbs.find((b) => b.type === 'api')
+  assert.deepEqual([api.data.method, api.data.url, api.data.status, api.data.error_code], ['GET', '/rest/v1/orders?select&id', 500, 'PGRST116'], 'no query values')
+  assert.equal(r.breadcrumbs.at(-1).message, 'tapped Pay')
+  assert.ok(!r.breadcrumbs.some((b) => String(b.message).includes('/crashes/')), 'its own calls are not breadcrumbs')
+  assert.ok(r.install_id)
+  c.crashes.captureException(new Error('x'), { context: { drop: true } })
+  await c.crashes.flush()
+  assert.equal(calls.filter((x) => x.url.endsWith('/crashes/v1/report')).length, 1, 'beforeSend returned null')
+  off = true
+  c.crashes.captureException(new Error('a')); await c.crashes.flush()
+  c.crashes.captureException(new Error('b')); await c.crashes.flush()
+  assert.equal(calls.filter((x) => x.url.endsWith('/crashes/v1/report')).length, 2, 'after a 404 the client stops sending')
+  c.crashes.stop()
+})

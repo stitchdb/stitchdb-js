@@ -230,6 +230,18 @@ const { data: csv } = await admin.metering.exportCsv({ from: '2026-10-01', to: '
 await stitchdb.metering.record('exports')
 ```
 
+### Crash reporting
+
+Uncaught errors and the errors you report, grouped into issues in Studio › Crashes, with the stack, breadcrumbs and the API call that failed right before the crash. Nothing is captured or sent before `start()`.
+
+```js
+stitchdb.crashes.start({ release: '1.4.0', environment: 'production' })
+
+try { await checkout(cart) } catch (e) { stitchdb.crashes.captureException(e, { context: { cart: cart.id } }) }
+stitchdb.crashes.addBreadcrumb({ type: 'ui', message: 'tap Checkout' })
+await stitchdb.crashes.flush() // before a serverless function returns
+```
+
 ## Serverless SQL (edge runtimes)
 
 `stitchdb-js/sql` sends Postgres queries over HTTPS and WebSocket, so it works in Cloudflare Workers, Vercel Edge, Deno Deploy and other runtimes that can't open TCP connections. Turn it on and create a SQL key in Studio › Database › Serverless SQL. The connection URL looks like `https://sdb_sql_...@<ref>.stitchdb.com`.
