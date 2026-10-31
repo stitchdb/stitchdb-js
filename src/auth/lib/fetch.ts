@@ -142,7 +142,12 @@ export async function handleError(error: unknown) {
     throw new AuthSessionMissingError()
   }
 
-  throw new AuthApiError(_getErrorMessage(data), error.status || 500, errorCode)
+  const apiError = new AuthApiError(_getErrorMessage(data), error.status || 500, errorCode)
+  // The sign-up check comes with the refusal, so the client need not ask /challenge for one.
+  if (errorCode === 'captcha_required' && data && typeof data.challenge === 'object') {
+    ;(apiError as AuthApiError & { challenge?: unknown }).challenge = data.challenge
+  }
+  throw apiError
 }
 
 const _getRequestParams = (

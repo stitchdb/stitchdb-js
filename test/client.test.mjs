@@ -595,3 +595,22 @@ test('analytics: queued before start, batched with the anonymous id, opt-out, of
   assert.equal(calls.filter((x) => x.url.endsWith('/analytics/v1/track')).length, sent.length + 1, 'after a 404 the client stops sending')
   c.analytics.stop()
 })
+
+test('sign-up uses the check sent with the refusal and solves the top difficulty fast', async () => {
+  const { createHash } = await import('node:crypto')
+  const salt = 'xyz?expires=9999999999&', n = 999_000
+  const challenge = { algorithm: 'SHA-256', challenge: createHash('sha256').update(salt + n).digest('hex'), maxnumber: 1_000_000, salt, signature: 'sig' }
+  const calls = []
+  const fetch = async (url, opts) => {
+    calls.push({ url: String(url), method: opts.method, body: opts.body ? JSON.parse(opts.body) : null })
+    if (calls.length === 1) return new Response(JSON.stringify({ code: 400, error_code: 'captcha_required', msg: 'Complete the sign-up check', challenge }), { status: 400 })
+    return new Response(JSON.stringify({ id: 'u1', email: 'a@b.c' }), { status: 200 })
+  }
+  const c = createClient(URL_, KEY, { global: { fetch }, auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } })
+  const t = Date.now()
+  const { error } = await c.auth.signUp({ email: 'a@b.c', password: 'secret-pass' })
+  assert.equal(error, null)
+  assert.ok(Date.now() - t < 15000, `took ${Date.now() - t} ms`)
+  assert.deepEqual(calls.map((x) => x.method), ['POST', 'POST'], 'no second challenge requested')
+  assert.equal(JSON.parse(Buffer.from(calls[1].body.stitchdb_captcha, 'base64').toString()).number, n)
+})

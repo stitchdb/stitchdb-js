@@ -866,8 +866,9 @@ export default class GoTrueClient {
       return await send({})
     } catch (error) {
       if (!isAuthApiError(error) || error.code !== 'captcha_required') throw error
-      const { data } = await _request(this.fetch, 'GET', `${this.url}/challenge`, { headers: this.headers })
-      const token = await solveSignupCheck(data as any)
+      let ch = (error as { challenge?: any }).challenge
+      if (!ch) ch = (await _request(this.fetch, 'GET', `${this.url}/challenge`, { headers: this.headers })).data
+      const token = await solveSignupCheck(ch)
       if (!token) throw error
       return await send({ stitchdb_captcha: token })
     }
