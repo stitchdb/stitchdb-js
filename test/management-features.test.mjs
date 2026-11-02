@@ -36,6 +36,7 @@ test('backups, compute, restart, replicas, budget, exports', async () => {
   await mgmt.backups.job(REF, 7)
   await mgmt.backups.restoreTable(REF, { table: 'orders', mode: 'copy', where: 'id > 10', target_time: '2026-11-01T12:00:00Z' })
   await mgmt.compute.get(REF)
+  await mgmt.compute.catalog(REF, { location: 'eu', kind: 'cloud' })
   await mgmt.compute.estimate(REF, { size_key: 'm2' })
   await mgmt.compute.change(REF, { size_key: 'm2', idempotency_key: 'k1' })
   await mgmt.projects.restart(REF)
@@ -56,16 +57,16 @@ test('backups, compute, restart, replicas, budget, exports', async () => {
   assert.deepEqual(lines(calls), [
     `GET ${P}/backups`, `POST ${P}/backups`, `POST ${P}/backups/12/restore`, `POST ${P}/backups/export`, `GET ${P}/backups/12/download?files=1`,
     `GET ${P}/backups/pitr`, `POST ${P}/backups/pitr`, `GET ${P}/backups/jobs`, `GET ${P}/backups/jobs/7`, `POST ${P}/backups/table-restore`,
-    `GET ${P}/compute`, `POST ${P}/compute/estimate`, `POST ${P}/compute`, `POST ${P}/restart`,
+    `GET ${P}/compute`, `GET ${P}/compute/catalog?location=eu&kind=cloud`, `POST ${P}/compute/estimate`, `POST ${P}/compute`, `POST ${P}/restart`,
     `GET ${P}/replicas`, `POST ${P}/replicas`, `DELETE ${P}/replicas/${UUID}`, `GET ${P}/auto-replicas`, `PUT ${P}/auto-replicas`,
     `GET ${P}/budget`, `PUT ${P}/budget`, `DELETE ${P}/budget`, `POST ${P}/budget/test`,
     `GET ${P}/export`, `POST ${P}/export`, `POST ${P}/export/import`, `POST ${P}/export/import/0123456789abcdef/restore`, `DELETE ${P}/export/0123456789abcdef`,
   ])
   assert.deepEqual(calls[6].body, { target_time: '2026-11-01T12:00:00Z', branch: 'before' })
   assert.deepEqual(calls[9].body, { table: 'orders', mode: 'copy', where: 'id > 10', target_time: '2026-11-01T12:00:00Z' })
-  assert.deepEqual(calls[12].body, { size_key: 'm2', idempotency_key: 'k1' })
-  assert.deepEqual(calls[18].body, { enabled: true, up_pct: 80, max_replicas: 2 })
-  assert.deepEqual(calls[20].body, { limits: { egress_gb: 100 }, thresholds: [50, 100] })
+  assert.deepEqual(calls[13].body, { size_key: 'm2', idempotency_key: 'k1' })
+  assert.deepEqual(calls[19].body, { enabled: true, up_pct: 80, max_replicas: 2 })
+  assert.deepEqual(calls[21].body, { limits: { egress_gb: 100 }, thresholds: [50, 100] })
   assert.equal(calls[0].body, undefined)
 })
 

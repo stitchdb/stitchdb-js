@@ -837,8 +837,11 @@ export class ManagementClient {
 
   /** Compute size of a project. */
   readonly compute = {
-    /** The current size, the sizes it can move to and any dedicated server. `GET /projects/:ref/compute` */
+    /** Eligibility, the current dedicated server, recent servers and the locations. `GET /projects/:ref/compute` */
     get: (ref: string) => this.r<Json>('GET', this.p(ref, '/compute')),
+    /** The sizes with their `size_key` and price. `GET /projects/:ref/compute/catalog?location&kind&need_gb` */
+    catalog: (ref: string, q: { location?: string; kind?: 'cloud' | 'auction' | 'large'; need_gb?: number } = {}) =>
+      this.r<Json>('GET', this.p(ref, '/compute/catalog'), { query: q as Query }),
     /** What a size costs (changes nothing). `POST /projects/:ref/compute/estimate` */
     estimate: (ref: string, input: ComputeInput) => this.r<Json>('POST', this.p(ref, '/compute/estimate'), { body: input }),
     /** Change the size (billed from the prepaid balance). `POST /projects/:ref/compute` */

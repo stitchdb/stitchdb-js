@@ -461,7 +461,7 @@ The methods are grouped by resource:
 | `regionMove`, `security`, `imports` | `get`, `start`, `cancel` / `exposure`, `settings`, `updateSettings` / `get`, `start`, `copy`, `cutover`, `undo`, `dismiss` |
 | `agents` | `keys.*`, `dbLogins.*`, `audit`, `approvals.*` (`approve`, `reject`), `sessions.*` (`revert`) |
 | `billing` | `estimate` |
-| `backups`, `compute`, `replicas`, `budget`, `exports` | `list`, `create`, `restore`, `exportLink`, `downloadLink`, `pitr`, `restoreToTime`, `jobs`, `job`, `restoreTable` / `get`, `estimate`, `change` / `list`, `add`, `remove`, `auto.get`, `auto.set` / `get`, `set`, `delete`, `test` / `list`, `start`, `startImport`, `restoreImport`, `delete` |
+| `backups`, `compute`, `replicas`, `budget`, `exports` | `list`, `create`, `restore`, `exportLink`, `downloadLink`, `pitr`, `restoreToTime`, `jobs`, `job`, `restoreTable` / `get`, `catalog`, `estimate`, `change` / `list`, `add`, `remove`, `auto.get`, `auto.set` / `get`, `set`, `delete`, `test` / `list`, `start`, `startImport`, `restoreImport`, `delete` |
 | `flags`, `rateLimits` | `get`, `enable`, `disable`, `create`, `update`, `delete`, `stats`, `segments.*`, `history`, `restore`, `test` / `get`, `update`, `installSql`, `removeSql` |
 | `inbound`, `statusPage` | `get`, `enable`, `disable`, `endpoints.*`, `events.*` / `get`, `enable`, `disable`, `update`, `incidents.*`, `subscribers.*` |
 | `cron`, `queues` | `list`, `runs`, `create`, `update`, `delete` / `list`, `create`, `delete`, `messages`, `send`, `read`, `archive`, `deleteMessage` |
