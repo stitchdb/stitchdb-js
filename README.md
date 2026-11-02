@@ -412,7 +412,7 @@ Built-in steps: `withClaims`, `withRequiredClaims`, `withStitchClient`, `withSti
 
 ## Management API
 
-`stitchdb-js/management` creates and runs projects from code: provisioning, SQL, migrations, branches, Edge Functions, secrets, webhooks, logs, custom domains, organizations and tokens. It calls the Management API at `https://stitchdb.com/platform/v1`, the same API the `stitchdb` CLI uses.
+`stitchdb-js/management` creates and runs projects from code: provisioning, SQL, migrations, branches, Edge Functions, secrets, webhooks, logs, custom domains, organizations and tokens, and the dashboard features (backups and point-in-time restore, compute, replicas, budgets, feature flags, status page, cron, queues, job monitoring, crash reporting, and more). It calls the Management API at `https://stitchdb.com/platform/v1`, the same API the `stitchdb` CLI uses.
 
 ```ts
 import { createManagementClient } from 'stitchdb-js/management'
@@ -431,6 +431,11 @@ await mgmt.secrets.set(project.ref, { STRIPE_KEY: 'sk_live_...' })
 // Pages: pass nextCursor back as cursor.
 const page = await mgmt.projects.list({ label: 'env:preview', limit: 100 })
 const next = page.nextCursor ? await mgmt.projects.list({ label: 'env:preview', limit: 100, cursor: page.nextCursor }) : null
+
+// Dashboard features take the same token (with the scopes each endpoint lists).
+await mgmt.backups.restoreToTime(project.ref, { target_time: '2026-11-01T12:00:00Z', branch: 'before-incident' })
+await mgmt.flags.create(project.ref, { key: 'new-checkout', enabled: true })
+await mgmt.cron.create(project.ref, { name: 'nightly', schedule: '0 3 * * *', command: 'select app.cleanup()' })
 ```
 
 Use a personal access token (`sdb_pat_…`, Account › Access tokens), an organization token (`sdb_org_…`), an OAuth access token or a short-lived project token (`sdb_prj_…`). These tokens can change and delete your projects, so only use them on a server.
@@ -441,7 +446,7 @@ The methods are grouped by resource:
 
 | Group | Methods |
 | --- | --- |
-| `projects` | `list`, `get`, `create`, `update`, `delete`, `pause`, `restore`, `apiKeys`, `rotateKeys`, `limits`, `updateLimits`, `usage`, `metrics` |
+| `projects` | `list`, `get`, `create`, `update`, `delete`, `pause`, `restore`, `restart`, `apiKeys`, `rotateKeys`, `limits`, `updateLimits`, `usage`, `metrics` |
 | `database` | `query`, `checkQuery`, `dump`, `types` (typescript, dart, swift, kotlin), `advisors`, `queryPerformance`, `resetQueryPerformance` |
 | `migrations` | `list`, `apply` (`dryRun`), `check`, `repair` |
 | `branches` | `list`, `create`, `get`, `delete`, `merge`, `masking`, `setMasking`, `maskingPreview` |
@@ -449,13 +454,20 @@ The methods are grouped by resource:
 | `webhooks` | `list`, `create`, `get`, `update`, `delete`, `secret`, `rotateSecret`, `test`, `deliveries`, `delivery`, `replay` |
 | `logDrains`, `logs` | `list`, `create`, `update`, `delete`, `test` / `search`, `query` |
 | `domains` | `list`, `get`, `add`, `check`, `update`, `delete` |
-| `integrations` | `vercel.list`, `browse`, `link`, `update`, `sync`, `unlink`; `github.get`, `repositories`, `link`, `unlink` |
+| `integrations` | `vercel.*` and `cloudflare.*`: `list`, `browse`, `link`, `update`, `sync`, `unlink`; `github.get`, `repositories`, `link`, `unlink` |
 | `organizations` | `list`, `billing`, `usage`, `auditLog`, `members.*`, `invitations.*`, `tokens.*`, `apps.*`, `webhooks.*` |
 | `tokens`, `claimLinks` | project tokens and claim links: `list`, `create`, `revoke` |
-| `authConfig`, `graphql`, `networkRestrictions` | `get`, `update` / `get`, `set` / `get`, `set` |
+| `authConfig`, `graphql`, `networkRestrictions` | `get`, `update`, `sso.*` (SAML providers) / `get`, `set` / `get`, `set` |
 | `regionMove`, `security`, `imports` | `get`, `start`, `cancel` / `exposure`, `settings`, `updateSettings` / `get`, `start`, `copy`, `cutover`, `undo`, `dismiss` |
 | `agents` | `keys.*`, `dbLogins.*`, `audit`, `approvals.*` (`approve`, `reject`), `sessions.*` (`revert`) |
 | `billing` | `estimate` |
+| `backups`, `compute`, `replicas`, `budget`, `exports` | `list`, `create`, `restore`, `exportLink`, `downloadLink`, `pitr`, `restoreToTime`, `jobs`, `job`, `restoreTable` / `get`, `estimate`, `change` / `list`, `add`, `remove`, `auto.get`, `auto.set` / `get`, `set`, `delete`, `test` / `list`, `start`, `startImport`, `restoreImport`, `delete` |
+| `flags`, `rateLimits` | `get`, `enable`, `disable`, `create`, `update`, `delete`, `stats`, `segments.*`, `history`, `restore`, `test` / `get`, `update`, `installSql`, `removeSql` |
+| `inbound`, `statusPage` | `get`, `enable`, `disable`, `endpoints.*`, `events.*` / `get`, `enable`, `disable`, `update`, `incidents.*`, `subscribers.*` |
+| `cron`, `queues` | `list`, `runs`, `create`, `update`, `delete` / `list`, `create`, `delete`, `messages`, `send`, `read`, `archive`, `deleteMessage` |
+| `push`, `purchases`, `links` | `get`, `configure`, `test`, `disable` / `get`, `configure`, `testWebhook`, `retryDelivery`, `disable` / `get`, `enable`, `disable`, `updateSettings`, `items.*` |
+| `metering`, `heartbeat`, `crashes` | `get`, `enable`, `disable`, `updateSettings`, plus Stripe and customer usage (`export` returns CSV) / monitors (`monitors.*`, `rotateToken`) / issues (`issues.*`) |
+| `recycleBin`, `history`, `sharedViews` | `get`, `setTable`, `restore`, `purge` / `get`, `setTable`, `revert` / `list`, `create`, `get`, `update`, `delete`, `addMembers`, `removeMember`, `audit` |
 
 Each method's doc comment names its endpoint. For any other endpoint, use `mgmt.request(method, path, { query, body })`. The full description is at `https://stitchdb.com/platform/v1/openapi.json` (`mgmt.openapi()`).
 

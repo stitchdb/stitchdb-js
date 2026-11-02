@@ -174,6 +174,97 @@ export interface ProjectTokenInput { name?: string; scopes?: string[]; expires_i
 export type MemberRole = 'admin' | 'developer' | 'read_only'
 export interface AgentKeyInput { name?: string; preset?: string; policy?: Json; ip_allowlist?: string[]; [k: string]: unknown }
 
+export interface CloudflareLinkInput {
+  /** A Cloudflare API token that can edit Workers / Pages (and Hyperdrive). */
+  token: string
+  account_id: string
+  kind: 'worker' | 'pages'
+  /** The Worker script or Pages project name. */
+  name: string
+  targets?: ('production' | 'preview')[]
+  prefix?: string
+  service_key?: boolean
+  database_url?: boolean
+  hyperdrive?: boolean
+}
+export interface TableRestoreInput {
+  schema?: string
+  table: string
+  /** `copy` restores into a new table; `replace` and `merge` change the table itself. */
+  mode: 'copy' | 'replace' | 'merge'
+  /** A SQL condition to restore only some rows. */
+  where?: string
+  target_time: string
+}
+export interface ComputeInput { size_key: string; idempotency_key?: string; [k: string]: unknown }
+export interface AutoReplicaSettings { enabled?: boolean; up_pct?: number; up_minutes?: number; down_pct?: number; down_minutes?: number; max_replicas?: number }
+export interface BudgetInput {
+  /** A limit per resource (null removes one). */
+  limits?: Record<string, number | null>
+  /** Alert at these percentages of each limit (default 50, 80, 100). */
+  thresholds?: number[]
+  /** Resources that stop at their limit. */
+  hard_stop?: string[]
+  telegram?: { chat_id: string; bot_token?: string } | null
+  [k: string]: unknown
+}
+export interface FlagInput {
+  key?: string
+  type?: 'boolean' | 'string' | 'number' | 'json'
+  name?: string; description?: string; enabled?: boolean; archived?: boolean; client?: boolean
+  variations?: unknown[]; rules?: unknown[]; fallthrough?: unknown; off_variation?: number
+  [k: string]: unknown
+}
+export interface SegmentInput { key?: string; name?: string; description?: string; included?: string[]; excluded?: string[]; conditions?: unknown[]; [k: string]: unknown }
+export interface InboundEndpointInput {
+  slug?: string; name?: string; provider?: string; secret?: string; opts?: Json
+  /** The Edge Function that handles the events. */
+  function?: string | null
+  enabled?: boolean; keep_days?: number | null; rotate?: boolean
+  [k: string]: unknown
+}
+export interface IncidentInput {
+  title?: string
+  impact?: 'minor' | 'major' | 'critical' | 'maintenance' | string
+  status?: string
+  message?: string
+  components?: string[]
+  /** Scheduled maintenance window. */
+  starts_at?: string; ends_at?: string
+  [k: string]: unknown
+}
+export interface CronJobInput {
+  /** The job name (`name` is accepted too). */
+  jobname?: string
+  name?: string
+  /** A cron expression (`0 3 * * *`) or a pg_cron interval (`30 seconds`). */
+  schedule?: string
+  /** The SQL to run. */
+  command?: string
+  active?: boolean
+}
+export interface PushConfigInput {
+  ios?: { p8?: string; key_id: string; team_id: string; bundle_id: string; production?: boolean } | null
+  android?: { service_account: string | Json } | null
+}
+export interface LinkInput { code?: string; data?: Json; [k: string]: unknown }
+export interface MonitorInput {
+  kind?: 'ping' | 'cron' | 'job'
+  name?: string
+  /** pg_cron job name (kind `cron`). */
+  target?: string
+  /** A cron expression (with `tz`), or `period_s` for a fixed interval. */
+  schedule?: string; tz?: string; period_s?: number; grace_s?: number; max_runtime_s?: number; paused?: boolean
+  [k: string]: unknown
+}
+export interface SsoProviderInput { metadata_url?: string; metadata_xml?: string; domains?: string[]; attribute_mapping?: Json; [k: string]: unknown }
+export interface TrackTableInput { schema?: string; table: string; enabled: boolean }
+export interface SharedViewInput {
+  name?: string; schema?: string; table?: string; columns?: string[]; editable?: string[]; filters?: unknown[]
+  can_insert?: boolean; can_delete?: boolean; disabled?: boolean
+  [k: string]: unknown
+}
+
 // ---------- helpers ----------
 const enc = encodeURIComponent
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -284,7 +375,7 @@ export class ManagementClient {
   /** The OpenAPI 3.1 description of this API. `GET /openapi.json` */
   openapi(): Promise<MgmtResult<Json>> { return this.r('GET', '/openapi.json') }
 
-  /** Projects: list, provision, change, pause, keys, limits, usage. */
+  /** Projects: list, provision, change, pause, restart, keys, limits, usage. */
   readonly projects = {
     /** Projects you (or the token) can reach, branches included unless `include_branches: false`. `GET /projects` */
     list: (o: ProjectListOptions = {}) => this.r<ProjectSummary[]>('GET', '/projects', { query: { ...o, label: o.label as string | string[] | undefined } as Query }),
@@ -311,6 +402,8 @@ export class ManagementClient {
     updateLimits: (ref: string, caps: Record<string, number | null>) => this.r<{ caps: Json; effective: Json }>('PATCH', this.p(ref, '/limits'), { body: caps }),
     /** Daily usage. `GET /projects/:ref/usage?from&to` */
     usage: (ref: string, o: { from?: string; to?: string } = {}) => this.r<Json>('GET', this.p(ref, '/usage'), { query: o }),
+    /** Restart the project's Auth and REST services. `POST /projects/:ref/restart` */
+    restart: (ref: string) => this.r<Json>('POST', this.p(ref, '/restart')),
     /** Time series for the project charts. `GET /projects/:ref/metrics?range=1h|24h|7d|30d|13mo` */
     metrics: (ref: string, o: { range?: '1h' | '24h' | '7d' | '30d' | '13mo' } = {}) => this.r<Json>('GET', this.p(ref, '/metrics'), { query: o }),
   }
@@ -473,7 +566,7 @@ export class ManagementClient {
     delete: (ref: string, domain: string) => this.r<Json>('DELETE', this.p(ref, `/custom-domains/${enc(domain)}`)),
   }
 
-  /** Vercel environment variable sync and the GitHub App link. */
+  /** Vercel and Cloudflare environment variable sync, and the GitHub App link. */
   readonly integrations = {
     vercel: {
       /** Linked Vercel projects. `GET /projects/:ref/integrations/vercel` */
@@ -490,6 +583,22 @@ export class ManagementClient {
       /** Unlink (`removeVariables` also deletes them in Vercel). `DELETE /projects/:ref/integrations/vercel/:id` */
       unlink: (ref: string, id: string, o: { removeVariables?: boolean } = {}) =>
         this.r<Json>('DELETE', this.p(ref, `/integrations/vercel/${enc(id)}`), { query: { remove_variables: o.removeVariables ? 'true' : undefined } }),
+    },
+    cloudflare: {
+      /** Linked Cloudflare Workers and Pages projects. `GET /projects/:ref/integrations/cloudflare` */
+      list: (ref: string) => this.r<Json[]>('GET', this.p(ref, '/integrations/cloudflare')),
+      /** Accounts, Workers and Pages projects a Cloudflare token can reach. `POST /projects/:ref/integrations/cloudflare/browse` */
+      browse: (ref: string, o: { token: string; account_id?: string }) => this.r<Json>('POST', this.p(ref, '/integrations/cloudflare/browse'), { body: o }),
+      /** Link a Worker or Pages project and write its variables (and a Hyperdrive config). `POST /projects/:ref/integrations/cloudflare` */
+      link: (ref: string, input: CloudflareLinkInput) => this.r<Json>('POST', this.p(ref, '/integrations/cloudflare'), { body: input }),
+      /** Change targets, prefix, variables or token (syncs again). `PATCH /projects/:ref/integrations/cloudflare/:id` */
+      update: (ref: string, id: string, patch: Partial<Omit<CloudflareLinkInput, 'account_id' | 'kind' | 'name'>>) =>
+        this.r<Json>('PATCH', this.p(ref, `/integrations/cloudflare/${enc(id)}`), { body: patch }),
+      /** Write the variables again now. `POST /projects/:ref/integrations/cloudflare/:id/sync` */
+      sync: (ref: string, id: string) => this.r<Json>('POST', this.p(ref, `/integrations/cloudflare/${enc(id)}/sync`)),
+      /** Unlink (`removeVariables` also deletes them in Cloudflare). `DELETE /projects/:ref/integrations/cloudflare/:id` */
+      unlink: (ref: string, id: string, o: { removeVariables?: boolean } = {}) =>
+        this.r<Json>('DELETE', this.p(ref, `/integrations/cloudflare/${enc(id)}`), { query: { remove_variables: o.removeVariables ? 'true' : undefined } }),
     },
     github: {
       /** The linked repository, installations and recent runs. `GET /projects/:ref/integrations/github` */
@@ -588,12 +697,22 @@ export class ManagementClient {
     revoke: (ref: string, id: string) => this.r<Json>('DELETE', this.p(ref, `/claim-links/${enc(id)}`)),
   }
 
-  /** Auth settings (site URL, redirect URLs, providers, SMTP, …). */
+  /** Auth settings (site URL, redirect URLs, providers, SMTP, …) and SAML SSO providers. */
   readonly authConfig = {
     /** `GET /projects/:ref/config/auth` */
     get: (ref: string) => this.r<Json>('GET', this.p(ref, '/config/auth')),
     /** Change settings (Auth restarts when needed). `PATCH /projects/:ref/config/auth` */
     update: (ref: string, patch: Json) => this.r<Json>('PATCH', this.p(ref, '/config/auth'), { body: patch }),
+    sso: {
+      /** SAML SSO providers. `GET /projects/:ref/config/auth/sso/providers` */
+      list: (ref: string) => this.r<Json>('GET', this.p(ref, '/config/auth/sso/providers')),
+      /** Add a SAML provider. `POST /projects/:ref/config/auth/sso/providers` */
+      create: (ref: string, input: SsoProviderInput & { domains: string[] }) => this.r<Json>('POST', this.p(ref, '/config/auth/sso/providers'), { body: input }),
+      /** `PUT /projects/:ref/config/auth/sso/providers/:id` */
+      update: (ref: string, id: string, patch: SsoProviderInput) => this.r<Json>('PUT', this.p(ref, `/config/auth/sso/providers/${enc(id)}`), { body: patch }),
+      /** `DELETE /projects/:ref/config/auth/sso/providers/:id` */
+      delete: (ref: string, id: string) => this.r<Json>('DELETE', this.p(ref, `/config/auth/sso/providers/${enc(id)}`)),
+    },
   }
 
   /** The GraphQL API of a project. */
@@ -689,6 +808,398 @@ export class ManagementClient {
     undo: (ref: string, input: { confirm: string }) => this.r<Json>('POST', this.p(ref, '/import/undo'), { body: input }),
     /** Dismiss a finished import. `DELETE /projects/:ref/import` */
     dismiss: (ref: string) => this.r<Json>('DELETE', this.p(ref, '/import')),
+  }
+
+  /** Backups, point-in-time recovery and table restores. */
+  readonly backups = {
+    /** Backups, the plan's retention and the point-in-time window. `GET /projects/:ref/backups` */
+    list: (ref: string) => this.r<Json>('GET', this.p(ref, '/backups')),
+    /** Start a manual backup now (one per hour). `POST /projects/:ref/backups` */
+    create: (ref: string) => this.r<Json>('POST', this.p(ref, '/backups')),
+    /** Restore a backup (the current state is backed up first, so it can be undone). `POST /projects/:ref/backups/:id/restore` */
+    restore: (ref: string, id: number | string) => this.r<Json>('POST', this.p(ref, `/backups/${enc(String(id))}/restore`)),
+    /** A signed link that streams a fresh dump of the current data. `POST /projects/:ref/backups/export` */
+    exportLink: (ref: string) => this.r<Json>('POST', this.p(ref, '/backups/export')),
+    /** A signed download link of a backup (`files`: its Storage files). `GET /projects/:ref/backups/:id/download` */
+    downloadLink: (ref: string, id: number | string, o: { files?: boolean } = {}) =>
+      this.r<Json>('GET', this.p(ref, `/backups/${enc(String(id))}/download`), { query: { files: o.files ? '1' : undefined } }),
+    /** The window you can restore to. `GET /projects/:ref/backups/pitr` */
+    pitr: (ref: string) => this.r<Json>('GET', this.p(ref, '/backups/pitr')),
+    /** Restore to a point in time (with `branch`: into a new preview branch). `POST /projects/:ref/backups/pitr` */
+    restoreToTime: (ref: string, input: { target_time: string; branch?: string }) => this.r<Json>('POST', this.p(ref, '/backups/pitr'), { body: input }),
+    /** Restore and backup jobs with their progress. `GET /projects/:ref/backups/jobs` */
+    jobs: (ref: string) => this.r<Json[]>('GET', this.p(ref, '/backups/jobs')),
+    /** One restore or backup job. `GET /projects/:ref/backups/jobs/:id` */
+    job: (ref: string, id: number | string) => this.r<Json>('GET', this.p(ref, `/backups/jobs/${enc(String(id))}`)),
+    /** Restore one table, or some rows of it, to a point in time. `POST /projects/:ref/backups/table-restore` */
+    restoreTable: (ref: string, input: TableRestoreInput) => this.r<Json>('POST', this.p(ref, '/backups/table-restore'), { body: input }),
+  }
+
+  /** Compute size of a project. */
+  readonly compute = {
+    /** The current size, the sizes it can move to and any dedicated server. `GET /projects/:ref/compute` */
+    get: (ref: string) => this.r<Json>('GET', this.p(ref, '/compute')),
+    /** What a size costs (changes nothing). `POST /projects/:ref/compute/estimate` */
+    estimate: (ref: string, input: ComputeInput) => this.r<Json>('POST', this.p(ref, '/compute/estimate'), { body: input }),
+    /** Change the size (billed from the prepaid balance). `POST /projects/:ref/compute` */
+    change: (ref: string, input: ComputeInput) => this.r<Json>('POST', this.p(ref, '/compute'), { body: input }),
+  }
+
+  /** Read replicas, added by hand or automatically. */
+  readonly replicas = {
+    /** Replicas with their connection details, price and failover state. `GET /projects/:ref/replicas` */
+    list: (ref: string) => this.r<Json>('GET', this.p(ref, '/replicas')),
+    /** Add a read replica (billed hourly from the prepaid balance). `POST /projects/:ref/replicas` */
+    add: (ref: string) => this.r<Json>('POST', this.p(ref, '/replicas')),
+    /** Remove a read replica. `DELETE /projects/:ref/replicas/:nodeId` */
+    remove: (ref: string, nodeId: string) => this.r<Json>('DELETE', this.p(ref, `/replicas/${enc(nodeId)}`)),
+    auto: {
+      /** Settings, running replicas and cost. `GET /projects/:ref/auto-replicas` */
+      get: (ref: string) => this.r<Json>('GET', this.p(ref, '/auto-replicas')),
+      /** Change the automatic replica settings. `PUT /projects/:ref/auto-replicas` */
+      set: (ref: string, settings: AutoReplicaSettings) => this.r<Json>('PUT', this.p(ref, '/auto-replicas'), { body: settings }),
+    },
+  }
+
+  /** The project's budget: limits per resource, alerts and what stops at the limit. */
+  readonly budget = {
+    /** `GET /projects/:ref/budget` */
+    get: (ref: string) => this.r<Json>('GET', this.p(ref, '/budget')),
+    /** Set the budget (fields left out keep their value). `PUT /projects/:ref/budget` */
+    set: (ref: string, budget: BudgetInput) => this.r<Json>('PUT', this.p(ref, '/budget'), { body: budget }),
+    /** Remove the budget. `DELETE /projects/:ref/budget` */
+    delete: (ref: string) => this.r<Json>('DELETE', this.p(ref, '/budget')),
+    /** Send a test budget alert. `POST /projects/:ref/budget/test` */
+    test: (ref: string) => this.r<Json>('POST', this.p(ref, '/budget/test')),
+  }
+
+  /** Full exports (database and files) and imports of an export archive. */
+  readonly exports = {
+    /** Exports and imports with their download / upload links. `GET /projects/:ref/export` */
+    list: (ref: string) => this.r<Json>('GET', this.p(ref, '/export')),
+    /** Start a full export. `POST /projects/:ref/export` */
+    start: (ref: string) => this.r<Json>('POST', this.p(ref, '/export')),
+    /** Start an import: returns the upload link for an export archive. `POST /projects/:ref/export/import` */
+    startImport: (ref: string) => this.r<Json>('POST', this.p(ref, '/export/import')),
+    /** Restore an uploaded archive into this project (organization owner). `POST /projects/:ref/export/import/:jobId/restore` */
+    restoreImport: (ref: string, jobId: string, input: Json = {}) => this.r<Json>('POST', this.p(ref, `/export/import/${enc(jobId)}/restore`), { body: input }),
+    /** Delete an export or import. `DELETE /projects/:ref/export/:jobId` */
+    delete: (ref: string, jobId: string) => this.r<Json>('DELETE', this.p(ref, `/export/${enc(jobId)}`)),
+  }
+
+  /** Feature flags and segments. */
+  readonly flags = {
+    /** State, flags and segments. `GET /projects/:ref/flags` */
+    get: (ref: string) => this.r<Json>('GET', this.p(ref, '/flags')),
+    /** Turn feature flags on. `POST /projects/:ref/flags` */
+    enable: (ref: string) => this.r<Json>('POST', this.p(ref, '/flags')),
+    /** Turn feature flags off. `DELETE /projects/:ref/flags` */
+    disable: (ref: string) => this.r<Json>('DELETE', this.p(ref, '/flags')),
+    /** Create a flag. `POST /projects/:ref/flags/flags` */
+    create: (ref: string, input: FlagInput & { key: string }) => this.r<Json>('POST', this.p(ref, '/flags/flags'), { body: input }),
+    /** Change a flag (rules, rollout, variations, enabled, archived). `PATCH /projects/:ref/flags/flags/:key` */
+    update: (ref: string, key: string, patch: FlagInput) => this.r<Json>('PATCH', this.p(ref, `/flags/flags/${enc(key)}`), { body: patch }),
+    /** Delete an archived flag. `DELETE /projects/:ref/flags/flags/:key` */
+    delete: (ref: string, key: string) => this.r<Json>('DELETE', this.p(ref, `/flags/flags/${enc(key)}`)),
+    /** How often a flag was evaluated, per variation. `GET /projects/:ref/flags/flags/:key/stats` */
+    stats: (ref: string, key: string) => this.r<Json>('GET', this.p(ref, `/flags/flags/${enc(key)}/stats`)),
+    segments: {
+      /** `POST /projects/:ref/flags/segments` */
+      create: (ref: string, input: SegmentInput & { key: string }) => this.r<Json>('POST', this.p(ref, '/flags/segments'), { body: input }),
+      /** `PATCH /projects/:ref/flags/segments/:key` */
+      update: (ref: string, key: string, patch: SegmentInput) => this.r<Json>('PATCH', this.p(ref, `/flags/segments/${enc(key)}`), { body: patch }),
+      /** `DELETE /projects/:ref/flags/segments/:key` */
+      delete: (ref: string, key: string) => this.r<Json>('DELETE', this.p(ref, `/flags/segments/${enc(key)}`)),
+    },
+    /** Change history of flags and segments. `GET /projects/:ref/flags/history` */
+    history: (ref: string, q: Query = {}) => this.r<Json>('GET', this.p(ref, '/flags/history'), { query: q }),
+    /** Restore a flag or segment from its history (the state `before` or `after` that change). `POST /projects/:ref/flags/history/:id/restore` */
+    restore: (ref: string, historyId: number | string, o: { side?: 'before' | 'after' } = {}) =>
+      this.r<Json>('POST', this.p(ref, `/flags/history/${enc(String(historyId))}/restore`), { body: o }),
+    /** Evaluate the flags for a test context (changes nothing). `POST /projects/:ref/flags/test` */
+    test: (ref: string, input: { user?: Json; anon_id?: string; attributes?: Json; key?: string; [k: string]: unknown }) =>
+      this.r<Json>('POST', this.p(ref, '/flags/test'), { body: input }),
+  }
+
+  /** API rate limit rules. */
+  readonly rateLimits = {
+    /** Rules and recent blocks. `GET /projects/:ref/rate-limits` */
+    get: (ref: string) => this.r<Json>('GET', this.p(ref, '/rate-limits')),
+    /** Replace the rules. `PATCH /projects/:ref/rate-limits` */
+    update: (ref: string, rules: Json[]) => this.r<Json>('PATCH', this.p(ref, '/rate-limits'), { body: { rules } }),
+    /** Install the SQL rate-limit function in the database. `POST /projects/:ref/rate-limits/sql` */
+    installSql: (ref: string) => this.r<Json>('POST', this.p(ref, '/rate-limits/sql')),
+    /** Remove the SQL rate-limit function. `DELETE /projects/:ref/rate-limits/sql` */
+    removeSql: (ref: string) => this.r<Json>('DELETE', this.p(ref, '/rate-limits/sql')),
+  }
+
+  /** Inbound webhooks: endpoints that receive and verify events from other services. */
+  readonly inbound = {
+    /** State and endpoints. `GET /projects/:ref/inbound` */
+    get: (ref: string) => this.r<Json>('GET', this.p(ref, '/inbound')),
+    /** `POST /projects/:ref/inbound` */
+    enable: (ref: string) => this.r<Json>('POST', this.p(ref, '/inbound')),
+    /** `DELETE /projects/:ref/inbound` */
+    disable: (ref: string) => this.r<Json>('DELETE', this.p(ref, '/inbound')),
+    endpoints: {
+      /** Add an endpoint (provider, signing secret, handler). `POST /projects/:ref/inbound/endpoints` */
+      create: (ref: string, input: InboundEndpointInput & { slug: string }) => this.r<Json>('POST', this.p(ref, '/inbound/endpoints'), { body: input }),
+      /** `PATCH /projects/:ref/inbound/endpoints/:slug` */
+      update: (ref: string, slug: string, patch: InboundEndpointInput) => this.r<Json>('PATCH', this.p(ref, `/inbound/endpoints/${enc(slug)}`), { body: patch }),
+      /** Delete an endpoint (`events`: its events too). `DELETE /projects/:ref/inbound/endpoints/:slug` */
+      delete: (ref: string, slug: string, o: { events?: boolean } = {}) =>
+        this.r<Json>('DELETE', this.p(ref, `/inbound/endpoints/${enc(slug)}`), { query: { events: o.events ? '1' : undefined } }),
+      /** Send a test event. `POST /projects/:ref/inbound/endpoints/:slug/test` */
+      test: (ref: string, slug: string, payload: Json = {}) => this.r<Json>('POST', this.p(ref, `/inbound/endpoints/${enc(slug)}/test`), { body: payload }),
+    },
+    events: {
+      /** Received events. `GET /projects/:ref/inbound/events?endpoint&status&limit&before` */
+      list: (ref: string, q: { endpoint?: string; status?: string; limit?: number; before?: string | number } = {}) => this.r<Json>('GET', this.p(ref, '/inbound/events'), { query: q }),
+      /** One event with its payload. `GET /projects/:ref/inbound/events/:id` */
+      get: (ref: string, id: number | string) => this.r<Json>('GET', this.p(ref, `/inbound/events/${enc(String(id))}`)),
+      /** Process an event again. `POST /projects/:ref/inbound/events/:id/redeliver` */
+      redeliver: (ref: string, id: number | string) => this.r<Json>('POST', this.p(ref, `/inbound/events/${enc(String(id))}/redeliver`)),
+      /** `DELETE /projects/:ref/inbound/events/:id` */
+      delete: (ref: string, id: number | string) => this.r<Json>('DELETE', this.p(ref, `/inbound/events/${enc(String(id))}`)),
+    },
+  }
+
+  /** The project's public status page. */
+  readonly statusPage = {
+    /** State, settings, components and incidents. `GET /projects/:ref/status-page` */
+    get: (ref: string) => this.r<Json>('GET', this.p(ref, '/status-page')),
+    /** `POST /projects/:ref/status-page` */
+    enable: (ref: string) => this.r<Json>('POST', this.p(ref, '/status-page')),
+    /** `DELETE /projects/:ref/status-page` */
+    disable: (ref: string) => this.r<Json>('DELETE', this.p(ref, '/status-page')),
+    /** Change the page (title, components, checks, notifications). `PUT /projects/:ref/status-page/settings` */
+    update: (ref: string, settings: Json) => this.r<Json>('PUT', this.p(ref, '/status-page/settings'), { body: settings }),
+    incidents: {
+      /** Post an incident or scheduled maintenance. `POST /projects/:ref/status-page/incidents` */
+      create: (ref: string, input: IncidentInput & { title: string; message: string }) => this.r<Json>('POST', this.p(ref, '/status-page/incidents'), { body: input }),
+      /** Add an update (`status`, `message`) or change the incident. `PATCH /projects/:ref/status-page/incidents/:id` */
+      update: (ref: string, incidentId: string, patch: IncidentInput) => this.r<Json>('PATCH', this.p(ref, `/status-page/incidents/${enc(incidentId)}`), { body: patch }),
+      /** `DELETE /projects/:ref/status-page/incidents/:id` */
+      delete: (ref: string, incidentId: string) => this.r<Json>('DELETE', this.p(ref, `/status-page/incidents/${enc(incidentId)}`)),
+      /** Edit a posted update. `PATCH /projects/:ref/status-page/incidents/:id/updates/:updateId` */
+      editUpdate: (ref: string, incidentId: string, updateId: number | string, patch: { message?: string; status?: string; [k: string]: unknown }) =>
+        this.r<Json>('PATCH', this.p(ref, `/status-page/incidents/${enc(incidentId)}/updates/${enc(String(updateId))}`), { body: patch }),
+    },
+    subscribers: {
+      /** E-mail subscribers. `GET /projects/:ref/status-page/subscribers` */
+      list: (ref: string) => this.r<Json>('GET', this.p(ref, '/status-page/subscribers')),
+      /** `DELETE /projects/:ref/status-page/subscribers/:id` */
+      remove: (ref: string, id: number | string) => this.r<Json>('DELETE', this.p(ref, `/status-page/subscribers/${enc(String(id))}`)),
+    },
+  }
+
+  /** Scheduled jobs (pg_cron). */
+  readonly cron = {
+    /** Jobs with their last run. `GET /projects/:ref/cron/jobs` */
+    list: (ref: string) => this.r<Json[]>('GET', this.p(ref, '/cron/jobs')),
+    /** Recent runs (of one job with `jobid`). `GET /projects/:ref/cron/runs?jobid` */
+    runs: (ref: string, q: { jobid?: number | string } = {}) => this.r<Json[]>('GET', this.p(ref, '/cron/runs'), { query: q }),
+    /** Schedule a job. `POST /projects/:ref/cron/jobs` */
+    create: (ref: string, input: CronJobInput & { schedule: string; command: string }) => {
+      const { name, ...rest } = input
+      return this.r<{ jobid: number }>('POST', this.p(ref, '/cron/jobs'), { body: { ...rest, jobname: input.jobname ?? name } })
+    },
+    /** Change the schedule, command or active state. `PATCH /projects/:ref/cron/jobs/:id` */
+    update: (ref: string, id: number | string, patch: { schedule?: string; command?: string; active?: boolean }) =>
+      this.r<Json>('PATCH', this.p(ref, `/cron/jobs/${enc(String(id))}`), { body: patch }),
+    /** Unschedule a job. `DELETE /projects/:ref/cron/jobs/:id` */
+    delete: (ref: string, id: number | string) => this.r<Json>('DELETE', this.p(ref, `/cron/jobs/${enc(String(id))}`)),
+  }
+
+  /** Message queues (pgmq). */
+  readonly queues = {
+    /** Queues with their length and age. `GET /projects/:ref/queues` */
+    list: (ref: string) => this.r<Json[]>('GET', this.p(ref, '/queues')),
+    /** Create a queue. `POST /projects/:ref/queues` */
+    create: (ref: string, input: { name: string; type?: 'standard' | 'unlogged' | 'partitioned' }) =>
+      this.r<Json>('POST', this.p(ref, '/queues'), { body: { ...input, ...(input.type === 'unlogged' ? { unlogged: true } : {}) } }),
+    /** Delete a queue and its messages. `DELETE /projects/:ref/queues/:name` */
+    delete: (ref: string, name: string) => this.r<Json>('DELETE', this.p(ref, `/queues/${enc(name)}`)),
+    /** The newest messages (`archived`: the archive). `GET /projects/:ref/queues/:name/messages` */
+    messages: (ref: string, name: string, q: { archived?: boolean } = {}) =>
+      this.r<Json[]>('GET', this.p(ref, `/queues/${enc(name)}/messages`), { query: { archived: q.archived ? 'true' : undefined } }),
+    /** Send a message (`delay` in seconds). `POST /projects/:ref/queues/:name/messages` */
+    send: (ref: string, name: string, input: { message: unknown; delay?: number }) => this.r<{ msg_id: number }>('POST', this.p(ref, `/queues/${enc(name)}/messages`), { body: input }),
+    /** Read up to `qty` messages; they stay invisible for `vt` seconds. `POST /projects/:ref/queues/:name/read` */
+    read: (ref: string, name: string, input: { vt?: number; qty?: number } = {}) => this.r<Json[]>('POST', this.p(ref, `/queues/${enc(name)}/read`), { body: input }),
+    /** Move a message to the archive. `POST /projects/:ref/queues/:name/messages/:msgId/archive` */
+    archive: (ref: string, name: string, msgId: number | string) => this.r<Json>('POST', this.p(ref, `/queues/${enc(name)}/messages/${enc(String(msgId))}/archive`)),
+    /** Delete a message. `POST /projects/:ref/queues/:name/messages/:msgId/delete` */
+    deleteMessage: (ref: string, name: string, msgId: number | string) => this.r<Json>('POST', this.p(ref, `/queues/${enc(name)}/messages/${enc(String(msgId))}/delete`)),
+  }
+
+  /** Push notification credentials (APNs, FCM). */
+  readonly push = {
+    /** Credentials on file (never the keys), devices, recent messages. `GET /projects/:ref/push` */
+    get: (ref: string) => this.r<Json>('GET', this.p(ref, '/push')),
+    /** Set (or with null remove) the APNs .p8 key or the FCM service account. `PATCH /projects/:ref/push` */
+    configure: (ref: string, input: PushConfigInput) => this.r<Json>('PATCH', this.p(ref, '/push'), { body: input }),
+    /** Send a test notification to a user. `POST /projects/:ref/push/test` */
+    test: (ref: string, input: { user_id: string; title?: string; body?: string; inbox?: boolean }) => this.r<{ id: number }>('POST', this.p(ref, '/push/test'), { body: input }),
+    /** Turn push off and remove the credentials. `DELETE /projects/:ref/push` */
+    disable: (ref: string) => this.r<Json>('DELETE', this.p(ref, '/push')),
+  }
+
+  /** In-app purchases (App Store, Google Play). */
+  readonly purchases = {
+    /** Store credentials on file (never the keys), products, webhooks, deliveries. `GET /projects/:ref/purchases` */
+    get: (ref: string) => this.r<Json>('GET', this.p(ref, '/purchases')),
+    /** Set store credentials, products and webhooks. `PATCH /projects/:ref/purchases` */
+    configure: (ref: string, input: Json) => this.r<Json>('PATCH', this.p(ref, '/purchases'), { body: input }),
+    /** Send a test event to a purchase webhook. `POST /projects/:ref/purchases/webhooks/:id/test` */
+    testWebhook: (ref: string, id: string) => this.r<Json>('POST', this.p(ref, `/purchases/webhooks/${enc(id)}/test`)),
+    /** Deliver a failed webhook again. `POST /projects/:ref/purchases/deliveries/:id/retry` */
+    retryDelivery: (ref: string, id: number | string) => this.r<Json>('POST', this.p(ref, `/purchases/deliveries/${enc(String(id))}/retry`)),
+    /** Turn purchases off and remove the credentials. `DELETE /projects/:ref/purchases` */
+    disable: (ref: string) => this.r<Json>('DELETE', this.p(ref, '/purchases')),
+  }
+
+  /** Deep links and short links. */
+  readonly links = {
+    /** State and settings. `GET /projects/:ref/links` */
+    get: (ref: string) => this.r<Json>('GET', this.p(ref, '/links')),
+    /** `POST /projects/:ref/links` */
+    enable: (ref: string) => this.r<Json>('POST', this.p(ref, '/links')),
+    /** `DELETE /projects/:ref/links` */
+    disable: (ref: string) => this.r<Json>('DELETE', this.p(ref, '/links')),
+    /** Apps, app stores, fallback and domain. `PUT /projects/:ref/links/settings` */
+    updateSettings: (ref: string, settings: Json) => this.r<Json>('PUT', this.p(ref, '/links/settings'), { body: settings }),
+    items: {
+      /** Short links. `GET /projects/:ref/links/items?q&limit&offset` */
+      list: (ref: string, q: { q?: string; limit?: number; offset?: number } = {}) => this.r<Json>('GET', this.p(ref, '/links/items'), { query: q }),
+      /** Create a short link. `POST /projects/:ref/links/items` */
+      create: (ref: string, input: LinkInput) => this.r<Json>('POST', this.p(ref, '/links/items'), { body: input }),
+      /** One link with its click statistics. `GET /projects/:ref/links/items/:code?days` */
+      get: (ref: string, code: string, q: { days?: number } = {}) => this.r<Json>('GET', this.p(ref, `/links/items/${enc(code)}`), { query: q }),
+      /** `PATCH /projects/:ref/links/items/:code` */
+      update: (ref: string, code: string, patch: LinkInput) => this.r<Json>('PATCH', this.p(ref, `/links/items/${enc(code)}`), { body: patch }),
+      /** `DELETE /projects/:ref/links/items/:code` */
+      delete: (ref: string, code: string) => this.r<Json>('DELETE', this.p(ref, `/links/items/${enc(code)}`)),
+    },
+  }
+
+  /** Usage metering of your own customers, and the push to Stripe. */
+  readonly metering = {
+    /** State, meters, alerts and the Stripe push (key masked). `GET /projects/:ref/metering` */
+    get: (ref: string) => this.r<Json>('GET', this.p(ref, '/metering')),
+    /** `POST /projects/:ref/metering` */
+    enable: (ref: string) => this.r<Json>('POST', this.p(ref, '/metering')),
+    /** `DELETE /projects/:ref/metering` */
+    disable: (ref: string) => this.r<Json>('DELETE', this.p(ref, '/metering')),
+    /** Meters, plans and alerts. `PUT /projects/:ref/metering/settings` */
+    updateSettings: (ref: string, settings: Json) => this.r<Json>('PUT', this.p(ref, '/metering/settings'), { body: settings }),
+    /** The Stripe push (secret key, meters). `PUT /projects/:ref/metering/stripe` */
+    setStripe: (ref: string, input: Json) => this.r<Json>('PUT', this.p(ref, '/metering/stripe'), { body: input }),
+    /** End customers and their Stripe customer ids. `GET /projects/:ref/metering/stripe/customers` */
+    stripeCustomers: (ref: string, q: Query = {}) => this.r<Json>('GET', this.p(ref, '/metering/stripe/customers'), { query: q }),
+    /** Set Stripe customer ids of end customers. `PUT /projects/:ref/metering/stripe/customers` */
+    setStripeCustomers: (ref: string, input: Json) => this.r<Json>('PUT', this.p(ref, '/metering/stripe/customers'), { body: input }),
+    /** Push failed usage to Stripe again. `POST /projects/:ref/metering/stripe/retry` */
+    retryStripe: (ref: string) => this.r<Json>('POST', this.p(ref, '/metering/stripe/retry')),
+    /** Usage per end customer. `GET /projects/:ref/metering/customers?from&to&meter&q&limit` */
+    customers: (ref: string, q: { from?: string; to?: string; meter?: string; q?: string; limit?: number } = {}) => this.r<Json>('GET', this.p(ref, '/metering/customers'), { query: q }),
+    /** Daily usage of one end customer. `GET /projects/:ref/metering/customers/:id` */
+    customer: (ref: string, id: string, q: { from?: string; to?: string; meter?: string } = {}) => this.r<Json>('GET', this.p(ref, `/metering/customers/${enc(id)}`), { query: q }),
+    /** Usage as CSV text. `GET /projects/:ref/metering/export?from&to&meter` */
+    export: (ref: string, q: { from?: string; to?: string; meter?: string } = {}) =>
+      this.r<string>('GET', this.p(ref, '/metering/export'), { query: q, headers: { Accept: 'text/csv, text/plain, */*' } }),
+  }
+
+  /** Job monitoring (heartbeats of cron jobs, background jobs and outside jobs). */
+  readonly heartbeat = {
+    /** State, alert settings and monitors. `GET /projects/:ref/heartbeat` */
+    get: (ref: string) => this.r<Json>('GET', this.p(ref, '/heartbeat')),
+    /** `POST /projects/:ref/heartbeat` */
+    enable: (ref: string) => this.r<Json>('POST', this.p(ref, '/heartbeat')),
+    /** `DELETE /projects/:ref/heartbeat` */
+    disable: (ref: string) => this.r<Json>('DELETE', this.p(ref, '/heartbeat')),
+    /** Alert settings (e-mail, webhook, Slack). `PUT /projects/:ref/heartbeat/settings` */
+    updateSettings: (ref: string, settings: Json) => this.r<Json>('PUT', this.p(ref, '/heartbeat/settings'), { body: settings }),
+    /** Send a test alert. `POST /projects/:ref/heartbeat/test` */
+    test: (ref: string) => this.r<Json>('POST', this.p(ref, '/heartbeat/test')),
+    monitors: {
+      /** Add a monitor. `POST /projects/:ref/heartbeat/monitors` */
+      create: (ref: string, input: MonitorInput & { kind: 'ping' | 'cron' | 'job'; name: string }) => this.r<Json>('POST', this.p(ref, '/heartbeat/monitors'), { body: input }),
+      /** One monitor with its recent pings. `GET /projects/:ref/heartbeat/monitors/:id?limit` */
+      get: (ref: string, id: number | string, q: { limit?: number } = {}) => this.r<Json>('GET', this.p(ref, `/heartbeat/monitors/${enc(String(id))}`), { query: q }),
+      /** `PATCH /projects/:ref/heartbeat/monitors/:id` */
+      update: (ref: string, id: number | string, patch: MonitorInput) => this.r<Json>('PATCH', this.p(ref, `/heartbeat/monitors/${enc(String(id))}`), { body: patch }),
+      /** `DELETE /projects/:ref/heartbeat/monitors/:id` */
+      delete: (ref: string, id: number | string) => this.r<Json>('DELETE', this.p(ref, `/heartbeat/monitors/${enc(String(id))}`)),
+      /** A new ping URL (the old one stops working). `POST /projects/:ref/heartbeat/monitors/:id/token` */
+      rotateToken: (ref: string, id: number | string) => this.r<Json>('POST', this.p(ref, `/heartbeat/monitors/${enc(String(id))}/token`)),
+    },
+  }
+
+  /** Crash reporting. */
+  readonly crashes = {
+    /** State and alert settings. `GET /projects/:ref/crashes` */
+    get: (ref: string) => this.r<Json>('GET', this.p(ref, '/crashes')),
+    /** `POST /projects/:ref/crashes` */
+    enable: (ref: string) => this.r<Json>('POST', this.p(ref, '/crashes')),
+    /** `DELETE /projects/:ref/crashes` */
+    disable: (ref: string) => this.r<Json>('DELETE', this.p(ref, '/crashes')),
+    /** Alerts on new issues, regressions and spikes (e-mail, webhook, Slack). `PUT /projects/:ref/crashes/settings` */
+    updateSettings: (ref: string, settings: Json) => this.r<Json>('PUT', this.p(ref, '/crashes/settings'), { body: settings }),
+    /** Send a test alert. `POST /projects/:ref/crashes/test` */
+    test: (ref: string) => this.r<Json>('POST', this.p(ref, '/crashes/test')),
+    issues: {
+      /** `GET /projects/:ref/crashes/issues?status&release&q&limit&offset` */
+      list: (ref: string, q: { status?: string; release?: string; q?: string; limit?: number; offset?: number } = {}) => this.r<Json>('GET', this.p(ref, '/crashes/issues'), { query: q }),
+      /** One issue with its latest events. `GET /projects/:ref/crashes/issues/:id` */
+      get: (ref: string, id: number | string) => this.r<Json>('GET', this.p(ref, `/crashes/issues/${enc(String(id))}`)),
+      /** Resolve, ignore or reopen. `PATCH /projects/:ref/crashes/issues/:id` */
+      update: (ref: string, id: number | string, patch: { status: 'open' | 'resolved' | 'ignored' }) =>
+        this.r<Json>('PATCH', this.p(ref, `/crashes/issues/${enc(String(id))}`), { body: patch }),
+    },
+  }
+
+  /** Deleted rows kept by the recycle bin. */
+  readonly recycleBin = {
+    /** Deleted rows and the tables the bin covers. `GET /projects/:ref/recycle-bin?table&limit` */
+    get: (ref: string, q: { table?: string; limit?: number } = {}) => this.r<Json>('GET', this.p(ref, '/recycle-bin'), { query: q }),
+    /** Turn the bin on or off for a table. `PUT /projects/:ref/recycle-bin/tables` */
+    setTable: (ref: string, input: TrackTableInput) => this.r<Json>('PUT', this.p(ref, '/recycle-bin/tables'), { body: input }),
+    /** Restore deleted rows. `POST /projects/:ref/recycle-bin/restore` */
+    restore: (ref: string, ids: (number | string)[]) => this.r<Json>('POST', this.p(ref, '/recycle-bin/restore'), { body: { ids } }),
+    /** Delete rows from the bin for good. `POST /projects/:ref/recycle-bin/purge` */
+    purge: (ref: string, ids: (number | string)[]) => this.r<Json>('POST', this.p(ref, '/recycle-bin/purge'), { body: { ids } }),
+  }
+
+  /** Row change history. */
+  readonly history = {
+    /** Row changes and the tables that keep a history. `GET /projects/:ref/history?table&pk&limit&before` */
+    get: (ref: string, q: { table?: string; pk?: string; limit?: number; before?: string | number } = {}) => this.r<Json>('GET', this.p(ref, '/history'), { query: q }),
+    /** Turn the history on or off for a table. `PUT /projects/:ref/history/tables` */
+    setTable: (ref: string, input: TrackTableInput) => this.r<Json>('PUT', this.p(ref, '/history/tables'), { body: input }),
+    /** Revert one change. `POST /projects/:ref/history/revert` */
+    revert: (ref: string, id: number | string) => this.r<Json>('POST', this.p(ref, '/history/revert'), { body: { id } }),
+  }
+
+  /** Shared table views: read-only (or editable) links for people without dashboard access. */
+  readonly sharedViews = {
+    /** `GET /projects/:ref/shared-views` */
+    list: (ref: string) => this.r<Json>('GET', this.p(ref, '/shared-views')),
+    /** `POST /projects/:ref/shared-views` */
+    create: (ref: string, input: SharedViewInput & { name: string; table: string }) => this.r<Json>('POST', this.p(ref, '/shared-views'), { body: input }),
+    /** One view with its members. `GET /projects/:ref/shared-views/:id` */
+    get: (ref: string, id: string) => this.r<Json>('GET', this.p(ref, `/shared-views/${enc(id)}`)),
+    /** `PATCH /projects/:ref/shared-views/:id` */
+    update: (ref: string, id: string, patch: SharedViewInput) => this.r<Json>('PATCH', this.p(ref, `/shared-views/${enc(id)}`), { body: patch }),
+    /** `DELETE /projects/:ref/shared-views/:id` */
+    delete: (ref: string, id: string) => this.r<Json>('DELETE', this.p(ref, `/shared-views/${enc(id)}`)),
+    /** Give people access by e-mail (`send: false` skips the invitation e-mail). `POST /projects/:ref/shared-views/:id/members` */
+    addMembers: (ref: string, id: string, emails: string[], o: { send?: boolean; resend?: boolean } = {}) =>
+      this.r<Json>('POST', this.p(ref, `/shared-views/${enc(id)}/members`), { body: { emails, ...o } }),
+    /** `DELETE /projects/:ref/shared-views/:id/members?email` */
+    removeMember: (ref: string, id: string, email: string) => this.r<Json>('DELETE', this.p(ref, `/shared-views/${enc(id)}/members`), { query: { email } }),
+    /** Who opened the view and when. `GET /projects/:ref/shared-views/:id/audit` */
+    audit: (ref: string, id: string, q: { limit?: number; before?: number } = {}) => this.r<Json>('GET', this.p(ref, `/shared-views/${enc(id)}/audit`), { query: q }),
   }
 
   /** Prices. */
