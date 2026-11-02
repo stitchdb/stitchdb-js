@@ -34,6 +34,19 @@ await stitchdb.from('todos').delete().eq('id', 1)
 await stitchdb.rpc('search_todos', { term: 'ship' })
 ```
 
+### GraphQL
+
+Turn on the GraphQL API in Studio › API › GraphQL. It uses the same API keys and row level security as the REST API; signed in, queries run as the user.
+
+```js
+const { data, error } = await stitchdb.graphql(`
+  query Todos($done: Boolean) {
+    todosCollection(filter: { is_complete: { eq: $done } }, first: 20) { edges { node { id task } } }
+  }`, { variables: { done: false } })
+```
+
+`error` is set when the request failed or the answer has GraphQL errors; `errors` has them as the server sent them.
+
 ### Auth
 
 ```js
@@ -199,6 +212,23 @@ Deno.serve(longJob(async (payload, ctx) => {
 // await admin.jobs.start('import-csv', { url }, { mode: 'long' }); await admin.jobs.logs(id)
 ```
 
+### Job monitoring
+
+Get an alert when a scheduled job did not run, failed or ran too long (set monitors up in Studio). pg_cron jobs and background jobs are watched without code. A job that runs anywhere else calls its monitor's ping URL; the `hb_…` token in it is the secret, no API key is needed.
+
+```js
+// wraps the job in a start and an end ping; a throw is reported as a failure with the error
+await stitchdb.heartbeat.run(process.env.NIGHTLY_MONITOR, () => exportOrders())
+
+await stitchdb.heartbeat.ping(token, { status: 'start' })
+await stitchdb.heartbeat.ping(token, { exitCode: 1, message: 'disk full' }) // 0 is success
+stitchdb.heartbeat.pingUrl(token)                                          // for curl in a crontab
+
+// server side, with the service key
+const { data: monitors } = await admin.heartbeat.monitors()
+const { data } = await admin.heartbeat.monitor(monitors[0].id, { limit: 50 }) // with its latest runs
+```
+
 ### Feature flags
 
 Turn features on for some users (a plan, a segment, a percentage) and read config values your app uses at runtime, changed in Studio › Integrations › Feature flags without a release.
@@ -228,6 +258,11 @@ const { data: csv } = await admin.metering.exportCsv({ from: '2026-10-01', to: '
 
 // in the app, signed in: meters marked "apps may record", for the user's own customer
 await stitchdb.metering.record('exports')
+
+// service key: rows as JSON, Stripe customer ids for usage sent to Stripe, alerts that fired
+const { data: rows } = await admin.metering.exportRows({ from: '2026-10-01', group: 'day' })
+await admin.metering.setStripeCustomer(org.id, 'cus_P5x...')     // null removes it
+const { data: alerts } = await admin.metering.alerts({ month: '2026-10' })
 ```
 
 ### Crash reporting
@@ -242,6 +277,21 @@ stitchdb.crashes.addBreadcrumb({ type: 'ui', message: 'tap Checkout' })
 await stitchdb.crashes.flush() // before a serverless function returns
 ```
 
+On your server or in CI, with the service key: read and resolve issues, crash-free users per release, and upload JavaScript source maps so stacks show the original file, line and function.
+
+```js
+const { data } = await admin.crashes.issues({ status: 'open', release: '1.4.0' })
+const { data: detail } = await admin.crashes.issue(data.issues[0].id)   // releases, days, latest events
+await admin.crashes.updateIssue(data.issues[0].id, { status: 'resolved' })
+const { data: releases } = await admin.crashes.releases({ days: 30 })
+
+await admin.crashes.sourcemaps.upload({ release: '1.4.0', name: '/assets/app.js', map: await readFile('dist/assets/app.js.map') })
+await admin.crashes.sourcemaps.list({ release: '1.4.0' })
+await admin.crashes.sourcemaps.remove({ release: '1.3.0' })
+```
+
+The release must be exactly what the app passes to `start({ release })`. The CLI does the same for a whole build folder: `stitchdb sourcemaps upload dist --release 1.4.0`.
+
 ### Analytics
 
 Track what users do, linked to the signed-in user (an anonymous id before sign-in, merged at sign-in): active users, funnels, retention and breakdowns in Studio › Analytics. Nothing is sent before `start()`; events are batched in the background and kept while offline.
@@ -250,6 +300,16 @@ Track what users do, linked to the signed-in user (an anonymous id before sign-i
 stitchdb.analytics.start({ release: '1.4.0' }) // page views on the web are tracked for you
 stitchdb.analytics.track('purchase', { plan: 'pro', amount: 29 })
 await stitchdb.analytics.optOut() // the user does not want to be tracked
+```
+
+Reports, on your server with the service key (ranges up to 90 days):
+
+```js
+const { data: overview } = await admin.analytics.overview({ days: 30 })          // DAU / WAU / MAU, top events
+const { data: trend } = await admin.analytics.trend({ event: 'purchase', interval: 'week', measure: 'users', breakdown: 'plan' })
+const { data: funnel } = await admin.analytics.funnel(['signup', 'onboarded', 'purchase'], { windowHours: 72 })
+const { data: cohorts } = await admin.analytics.retention({ weeks: 8 })
+const { data: events } = await admin.analytics.user({ userId: user.id })          // or { anonId }
 ```
 
 ### Deep links
@@ -261,6 +321,19 @@ const { data: link } = await stitchdb.links.resolve(url)          // the URL the
 if (link) navigate(link.path, link.data)
 const { data: first } = await stitchdb.links.deferred({ platform: 'ios' }) // first launch after an install, best effort
 const { data: made } = await stitchdb.links.create({ path: '/invite/7', data: { from: 'ana' } })
+```
+
+### Status page
+
+Your app's public status page (turn it on in Studio): whether the API, Auth, Storage, Edge Functions, Realtime, the database and your own URLs are up, 90 days of uptime, incidents and maintenance. No key is needed.
+
+```js
+const { data } = await stitchdb.status.get()
+if (data && data.overall !== 'operational') showBanner(data.overall_label)
+
+await stitchdb.status.subscribe('ana@example.com')   // e-mail updates; she gets a link to confirm first
+stitchdb.status.badgeUrl({ component: 'api' })      // an SVG badge for a README or a site
+stitchdb.status.pageUrl()                           // the page to link to
 ```
 
 ## Serverless SQL (edge runtimes)
@@ -304,6 +377,10 @@ room.setPresence({ name: 'Ann', cursor: 4 })
 room.on('presence', (peers) => drawCursors(peers))
 await collab.share('plan-2026', bobId, 'editor')
 const old = await room.loadSnapshot((await room.snapshots())[0].id)
+
+// without a live connection (a server, a script): read a document, or write a change to it
+const { doc } = await collab.load('plan-2026')
+await collab.write('plan-2026', Y.encodeStateAsUpdate(changed))
 ```
 
 Who may open and edit a document is row level security on `collab.documents`. Guide:
@@ -332,6 +409,68 @@ Built-in steps: `withClaims`, `withRequiredClaims`, `withStitchClient`, `withSti
 `defineMiddleware`. Duplicate steps and steps placed before the ones they need are TypeScript errors. Throw
 `HttpError` for JSON errors; `toNodeHandler` serves a pipeline with `node:http`. Docs:
 [stitchdb.com/docs/functions/middleware](https://stitchdb.com/docs/functions/middleware).
+
+## Management API
+
+`stitchdb-js/management` creates and runs projects from code: provisioning, SQL, migrations, branches, Edge Functions, secrets, webhooks, logs, custom domains, organizations and tokens. It calls the Management API at `https://stitchdb.com/platform/v1`, the same API the `stitchdb` CLI uses.
+
+```ts
+import { createManagementClient } from 'stitchdb-js/management'
+
+const mgmt = createManagementClient({ accessToken: process.env.STITCHDB_ACCESS_TOKEN! })
+
+const { data: project, error } = await mgmt.projects.create({ name: 'shop', labels: { env: 'preview' } }, { idempotencyKey: 'pr-42' })
+if (error) throw error // ManagementError: status, message, code, hint
+
+await mgmt.migrations.apply(project.ref, [{ version: '20261101000000', name: 'init', sql: 'create table orders (id bigint primary key)' }])
+const { data: res } = await mgmt.database.query(project.ref, 'select count(*) from orders')
+
+await mgmt.functions.deploy(project.ref, { slug: 'hello', files: [{ name: 'index.ts', content: 'Deno.serve(() => new Response("hi"))' }] })
+await mgmt.secrets.set(project.ref, { STRIPE_KEY: 'sk_live_...' })
+
+// Pages: pass nextCursor back as cursor.
+const page = await mgmt.projects.list({ label: 'env:preview', limit: 100 })
+const next = page.nextCursor ? await mgmt.projects.list({ label: 'env:preview', limit: 100, cursor: page.nextCursor }) : null
+```
+
+Use a personal access token (`sdb_pat_…`, Account › Access tokens), an organization token (`sdb_org_…`), an OAuth access token or a short-lived project token (`sdb_prj_…`). These tokens can change and delete your projects, so only use them on a server.
+
+Every method resolves to `{ data, error, status, nextCursor }` and does not throw. `error` is a `ManagementError` with the HTTP `status`, the server's message, and `code` and `hint` when the server sends them. SQL errors also carry the Postgres `code`, `detail` and `position`. Answers with status 429, 502 or 503 are retried up to 3 times and wait as long as `Retry-After` says (set `retries` to change the count). A request that fails on the network is sent again only for reads.
+
+The methods are grouped by resource:
+
+| Group | Methods |
+| --- | --- |
+| `projects` | `list`, `get`, `create`, `update`, `delete`, `pause`, `restore`, `apiKeys`, `rotateKeys`, `limits`, `updateLimits`, `usage`, `metrics` |
+| `database` | `query`, `checkQuery`, `dump`, `types` (typescript, dart, swift, kotlin), `advisors`, `queryPerformance`, `resetQueryPerformance` |
+| `migrations` | `list`, `apply` (`dryRun`), `check`, `repair` |
+| `branches` | `list`, `create`, `get`, `delete`, `merge`, `masking`, `setMasking`, `maskingPreview` |
+| `functions` / `secrets` | `list`, `get`, `deploy`, `update`, `delete`, `body`, `versions`, `logs`, `stats`, `usage` / `list`, `set`, `delete` |
+| `webhooks` | `list`, `create`, `get`, `update`, `delete`, `secret`, `rotateSecret`, `test`, `deliveries`, `delivery`, `replay` |
+| `logDrains`, `logs` | `list`, `create`, `update`, `delete`, `test` / `search`, `query` |
+| `domains` | `list`, `get`, `add`, `check`, `update`, `delete` |
+| `integrations` | `vercel.list`, `browse`, `link`, `update`, `sync`, `unlink`; `github.get`, `repositories`, `link`, `unlink` |
+| `organizations` | `list`, `billing`, `usage`, `auditLog`, `members.*`, `invitations.*`, `tokens.*`, `apps.*`, `webhooks.*` |
+| `tokens`, `claimLinks` | project tokens and claim links: `list`, `create`, `revoke` |
+| `authConfig`, `graphql`, `networkRestrictions` | `get`, `update` / `get`, `set` / `get`, `set` |
+| `regionMove`, `security`, `imports` | `get`, `start`, `cancel` / `exposure`, `settings`, `updateSettings` / `get`, `start`, `copy`, `cutover`, `undo`, `dismiss` |
+| `agents` | `keys.*`, `dbLogins.*`, `audit`, `approvals.*` (`approve`, `reject`), `sessions.*` (`revert`) |
+| `billing` | `estimate` |
+
+Each method's doc comment names its endpoint. For any other endpoint, use `mgmt.request(method, path, { query, body })`. The full description is at `https://stitchdb.com/platform/v1/openapi.json` (`mgmt.openapi()`).
+
+An AI agent that has an agent key (`sdb_agt_…`) uses its own client. Its SQL runs under the key's policy. A statement that needs a person's approval comes back with `status: 'pending_approval'`.
+
+```ts
+import { createAgentClient } from 'stitchdb-js/management'
+
+const agent = createAgentClient({ agentKey: process.env.STITCHDB_AGENT_KEY! })
+const { data } = await agent.sql('update orders set status = $$shipped$$ where id = 7', { session: 'run-1' })
+if (data?.status === 'pending_approval') { /* poll agent.approval(data.approval_id) */ }
+await agent.revert('run-1', { dry_run: false }) // undo everything the session changed
+```
+
+Without a bundler, import `https://stitchdb.com/sdk/stitchdb-management.mjs`.
 
 ## TypeScript
 

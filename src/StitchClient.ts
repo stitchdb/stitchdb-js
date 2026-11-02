@@ -12,6 +12,9 @@ import { AnalyticsClient } from './analytics'
 import { LinksClient } from './links'
 import { PurchasesClient } from './purchases'
 import { OrgsClient } from './orgs'
+import { graphql, type GraphQLOptions, type GraphQLResult } from './graphql'
+import { HeartbeatClient } from './heartbeat'
+import { StatusClient } from './status'
 import { withHistory } from './realtime-history'
 import {
   PostgrestClient,
@@ -118,6 +121,9 @@ export default class StitchClient<
   protected searchUrl: URL
   protected syncUrl: URL
   protected collabUrl: URL
+  protected graphqlUrl: URL
+  protected heartbeatUrl: URL
+  protected statusUrl: URL
   protected rest: PostgrestClient<Database, ClientOptions, SchemaName>
   protected storageKey: string
   protected fetch?: Fetch
@@ -368,6 +374,9 @@ export default class StitchClient<
     this.searchUrl = new URL('search/v1', baseUrl)
     this.syncUrl = new URL('sync/v1', baseUrl)
     this.collabUrl = new URL('collab/v1', baseUrl)
+    this.graphqlUrl = new URL('graphql/v1', baseUrl)
+    this.heartbeatUrl = new URL('heartbeat/v1', baseUrl)
+    this.statusUrl = new URL('status/v1', baseUrl)
 
     // default storage key uses the project ref as a namespace
     const projectRef = baseUrl.hostname.split('.')[0]
@@ -627,6 +636,37 @@ export default class StitchClient<
         if (data.session) await this.auth.refreshSession()
       }
     )
+  }
+
+  /**
+   * GraphQL over the project's tables (Studio › API › GraphQL). Sends the API key and, signed in, the user's session,
+   * so row level security applies as in the REST API. `error` is set when the request failed or the answer has errors.
+   *
+   * @example
+   * const { data, error } = await stitchdb.graphql('{ todosCollection(first: 5) { edges { node { id task } } } }')
+   */
+  graphql<T = any>(query: string, options: GraphQLOptions = {}): Promise<GraphQLResult<T>> {
+    return graphql<T>(this.graphqlUrl.href, this.fetch!, query, options)
+  }
+
+  /**
+   * Job monitoring: ping a monitor when an outside job runs (no key needed, the token is the
+   * secret), and with the service key read the monitors and their runs.
+   * @example
+   * await stitchdb.heartbeat.run(token, () => nightlyExport())
+   */
+  get heartbeat(): HeartbeatClient {
+    return new HeartbeatClient(this.heartbeatUrl.href, this.fetch!)
+  }
+
+  /**
+   * The app's public status page: the state of each service, uptime and incidents as JSON, e-mail updates, badge and
+   * page URLs.
+   * @example
+   * const { data } = await stitchdb.status.get()
+   */
+  get status(): StatusClient {
+    return new StatusClient(this.statusUrl.href, this.fetch!)
   }
 
   // NOTE: signatures must be kept in sync with PostgrestClient.from

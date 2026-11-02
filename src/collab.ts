@@ -164,6 +164,23 @@ export class CollabClient {
   async share(id: string, userId: string, role: 'viewer' | 'editor' = 'editor'): Promise<void> { await this._http('POST', `/docs/${encodeURIComponent(id)}/members`, { user_id: userId, role }) }
   /** Stop sharing a document with a user (the owner, or the user leaving it themselves). */
   async unshare(id: string, userId: string): Promise<void> { await this._http('DELETE', `/docs/${encodeURIComponent(id)}/members/${encodeURIComponent(userId)}`) }
+  /**
+   * A document's stored content without opening it live (a server, a script, an export): its updates applied to a
+   * new Y.Doc (or to `into`), and the sequence number they reach. `since` loads only the updates after that number.
+   */
+  async load(id: string, opts: { into?: YDocLike; since?: number } = {}): Promise<{ doc: YDocLike; seq: number; size: number }> {
+    const r = await this._http('GET', `/docs/${encodeURIComponent(id)}${opts.since ? `?since=${opts.since}` : ''}`)
+    const d = opts.into ?? new this.Y.Doc()
+    for (const u of r.updates) this.Y.applyUpdate(d, fromB64(u))
+    return { doc: d, seq: r.seq, size: r.size }
+  }
+  /**
+   * Write a Yjs update to a document without opening it live (for example `Y.encodeStateAsUpdate(doc)` of a change
+   * made on a server); everyone who has it open gets it at once. Needs edit access. Resolves to its sequence number.
+   */
+  async write(id: string, update: Uint8Array): Promise<number> {
+    return (await this._http('POST', `/docs/${encodeURIComponent(id)}/updates`, { data: toB64(update) })).seq
+  }
   /** Close every document and the connection. */
   close() {
     this.closed = true; clearTimeout(this.timer); clearTimeout(this.refresh)

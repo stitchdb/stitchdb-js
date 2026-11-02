@@ -31,3 +31,28 @@ async function check() {
   if (r.data) { const id: number = r.data[0].id; void id }
 }
 void check
+
+// Project APIs: GraphQL, reports, job monitoring, status page
+async function projectApis() {
+  const g = await c.graphql<{ todosCollection: { edges: { node: { id: number } }[] } }>('{ todosCollection { edges { node { id } } } }', { variables: { n: 1 } })
+  if (g.data) { const id: number = g.data.todosCollection.edges[0].node.id; void id }
+  if (g.error) { const s: number = g.error.status; void s; void g.errors?.[0].message }
+  const f = await c.analytics.funnel(['signup', 'purchase'], { windowHours: 48 })
+  if (f.data) { const pct: number | null = f.data.conversion; void pct }
+  // @ts-expect-error user() needs userId or anonId
+  await c.analytics.user({})
+  const i = await c.crashes.issues({ status: 'open' })
+  if (i.data) await c.crashes.updateIssue(i.data.issues[0].id, { status: 'resolved' })
+  // @ts-expect-error not an issue status
+  await c.crashes.updateIssue(1, { status: 'closed' })
+  await c.crashes.sourcemaps.upload({ release: '1.0.0', map: new Uint8Array() })
+  const m = await c.heartbeat.monitors()
+  if (m.data) { const st: 'new' | 'up' | 'down' | 'failed' | 'paused' = m.data[0].state; void st }
+  await c.heartbeat.ping('hb_x', { exitCode: 1, message: 'failed' })
+  const n: number = await c.heartbeat.run('hb_x', async () => 1); void n
+  const s = await c.status.get()
+  if (s.data) { const o: string = s.data.overall_label; void o }
+  const a = await c.metering.alerts({ month: '2026-10' })
+  if (a.data) { const v: number = a.data[0].value; void v }
+}
+void projectApis

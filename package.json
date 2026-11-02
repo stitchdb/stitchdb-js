@@ -1,6 +1,6 @@
 {
   "name": "stitchdb-js",
-  "version": "2.13.1",
+  "version": "2.14.0",
   "description": "Official JavaScript and TypeScript client for StitchDB: database, auth, storage, realtime and Edge Functions.",
   "license": "MIT",
   "homepage": "https://stitchdb.com/docs/sdk",
@@ -55,6 +55,11 @@
       "types": "./dist/types/sql.d.ts",
       "import": "./dist/sql.mjs",
       "require": "./dist/sql.cjs"
+    },
+    "./management": {
+      "types": "./dist/types/management.d.ts",
+      "import": "./dist/management.mjs",
+      "require": "./dist/management.cjs"
     },
     "./package.json": "./package.json"
   },

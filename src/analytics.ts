@@ -7,6 +7,9 @@
  * stitchdb.analytics.start({ release: '1.4.0' })
  * stitchdb.analytics.track('purchase', { plan: 'pro', amount: 29 })
  * await stitchdb.analytics.optOut() // the user does not want to be tracked
+ *
+ * // reports, server side with the service key
+ * const { data } = await admin.analytics.funnel(['signup', 'onboarded', 'purchase'], { windowHours: 72 })
  * ```
  *
  * Nothing is sent until you call `start()` and the project has analytics turned on (Studio › Analytics); events
@@ -28,6 +31,56 @@ export type AnalyticsOptions = {
   beforeSend?: (event: AnalyticsEvent) => AnalyticsEvent | null
   /** Send every N ms (default 10 000) or when 20 events are waiting. */
   flushIntervalMs?: number
+}
+
+export class AnalyticsError extends Error {
+  constructor(message: string, public status: number) { super(message); this.name = 'AnalyticsError' }
+}
+type Result<T> = { data: T; error: null } | { data: null; error: AnalyticsError }
+type DateLike = Date | string
+
+export type AnalyticsOverview = {
+  days: number
+  /** Active users and events per day, oldest first. */
+  active: { day: string; users: number; events: number }[]
+  dau: number; wau: number; mau: number
+  new_users: { day: number; week: number; period: number }
+  top_events: { name: string; events: number; users: number }[]
+}
+export type AnalyticsTrendQuery = {
+  event: string
+  /** Default: 30 days before `to`; at most 90 days. */
+  from?: DateLike
+  to?: DateLike
+  interval?: 'day' | 'week' | 'month'
+  /** Count events (default) or distinct users. */
+  measure?: 'events' | 'users'
+  /** release, platform, country, os or a property name (the top 10 values, the rest as "(other)"). */
+  breakdown?: string
+}
+export type AnalyticsTrend = {
+  event: string; from: string; to: string; interval: string; measure: string; breakdown: string | null
+  /** With a breakdown: its values, largest first. */
+  values: string[] | null
+  total: number
+  rows: { period: string; value?: string; n: number }[]
+}
+export type AnalyticsFunnel = {
+  from: string; to: string; window_hours: number
+  steps: { name: string; users: number; median_seconds: number | null }[]
+  /** Percent of the users of the first step who reached the last, or null when nobody did the first. */
+  conversion: number | null
+}
+export type AnalyticsRetention = { weeks: number; cohorts: { week: string; users: number; returned: number[] }[] }
+export type AnalyticsUserEvents = {
+  user: { uid: string; user_id: string | null; first_seen: string; last_seen: string; release: string | null; platform: string | null; country: string | null; os: string | null } | null
+  events: { at: string; name: string; props: Record<string, unknown>; release: string | null; platform: string | null; session_id: string | null }[]
+}
+
+const iso = (d?: DateLike) => (d instanceof Date ? d.toISOString() : d)
+const qs = (o: Record<string, unknown>) => {
+  const q = new URLSearchParams(Object.entries(o).filter(([, v]) => v != null && v !== '').map(([k, v]) => [k, String(iso(v as any))]))
+  return q.size ? `?${q}` : ''
 }
 
 const MAX_QUEUE = 1000, MAX_EARLY = 100, BATCH = 100
@@ -156,5 +209,33 @@ export class AnalyticsClient {
       } finally { this.sending = null }
     })()
     return this.sending
+  }
+
+  // ---------- reports (service key, on your server) ----------
+  private async report<T>(path: string, body?: unknown): Promise<Result<T>> {
+    try {
+      const res = await this.fetch(this.url + path, body === undefined ? { method: 'GET' } : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok) return { data: null, error: new AnalyticsError(j.message || `Request failed (${res.status})`, res.status) }
+      return { data: j as T, error: null }
+    } catch (e: any) { return { data: null, error: new AnalyticsError(e?.message || String(e), 0) } }
+  }
+  /** Active users per day, DAU / WAU / MAU, new users and the top events of the last `days` (default 30, at most 90; service key). */
+  overview(options: { days?: number } = {}): Promise<Result<AnalyticsOverview>> { return this.report(`/overview${qs(options)}`) }
+  /** One event over time, as events or users per day, week or month, optionally broken down (service key). */
+  trend(query: AnalyticsTrendQuery): Promise<Result<AnalyticsTrend>> { return this.report(`/trend${qs(query)}`) }
+  /**
+   * An ordered funnel: users who did the first step in the range, then each next step after it, all within
+   * `windowHours` of the first (default 24). 2 to 6 steps (service key).
+   */
+  funnel(steps: string[], options: { from?: DateLike; to?: DateLike; windowHours?: number } = {}): Promise<Result<AnalyticsFunnel>> {
+    return this.report('/funnel', { steps, from: iso(options.from), to: iso(options.to), window_hours: options.windowHours })
+  }
+  /** Weekly cohorts by first seen: how many came back each week after (default 8 weeks, 2 to 12; service key). */
+  retention(options: { weeks?: number } = {}): Promise<Result<AnalyticsRetention>> { return this.report(`/retention${qs(options)}`) }
+  /** The latest events of one user (by user id) or device (by anonymous id), newest first (default 100, at most 500; service key). */
+  user(who: { userId: string; limit?: number } | { anonId: string; limit?: number }): Promise<Result<AnalyticsUserEvents>> {
+    const w: any = who
+    return this.report(`/user${qs({ user_id: w.userId, anon_id: w.anonId, limit: w.limit })}`)
   }
 }
